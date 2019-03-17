@@ -2,6 +2,7 @@ module Main where
 
 import Control.Exception (try)
 import qualified Data.Map.Strict as M
+import Data.Typeable
 import System.IO (getLine, putStrLn)
 import System.IO.Error (isEOFError)
 
@@ -45,8 +46,8 @@ instance Applicative (Mut s) where
   Mut{mutStep=f} <*> Mut{mutStep=a} = Mut{mutStep=c}
     where c s = case f s of (f, s') -> case a s' of (x, s'') -> (f x, s'')
 
---instance Monad (Mut s) where
-  --(>>=) = composeMutsV
+instance Monad (Mut s) where
+  (>>=) = composeMutsV
 
 main :: IO ()
 main = do
@@ -56,7 +57,26 @@ main = do
   msp m
   msp m'
   let (5, _) = runMut (getMut "a") m'
-  x <- muts
   let ((), m'') = runMut (incMut "a") m'
   msp m''
-  msp x
+  let ((), m''') = runMut (getMut "a" >>= \n -> setMut "a" (n+1)) m''
+  msp m'''
+  let h :: Mut (M.Map String Int) ()
+      h = do n <- getMut "a"
+             setMut "a" (n+1)
+  msp $ typeOf h
+  let q = runMut h
+  msp $ typeOf q
+  let ((), m'''') = q m'''
+  msp $ typeOf m''''
+  msp m''''
+  let ((), m''''') = runMut (do n <- getMut "a"
+                                setMut "a" (n+1)) m''''
+  msp $ typeOf m'''''
+  msp m'''''
+  --((), m'''') <- runMut h m'''
+  --let ((), m'''') = runMut $ do n <- getMut "a"
+                                --setMut "a" (n+1)
+  msp "hi"
+  --x <- muts
+  --msp x

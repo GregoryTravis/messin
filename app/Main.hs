@@ -49,34 +49,36 @@ instance Applicative (Mut s) where
 instance Monad (Mut s) where
   (>>=) = composeMutsV
 
+newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
+setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
+setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
+
 main :: IO ()
 main = do
   let m :: M.Map String Int
       m = M.empty
   let ((), m') = runMut (setMut "a" 5) m
-  msp m
+  --msp m
   msp m'
   let (5, _) = runMut (getMut "a") m'
   let ((), m'') = runMut (incMut "a") m'
-  msp m''
+  --msp m''
   let ((), m''') = runMut (getMut "a" >>= \n -> setMut "a" (n+1)) m''
-  msp m'''
+  --msp m'''
   let h :: Mut (M.Map String Int) ()
       h = do n <- getMut "a"
              setMut "a" (n+1)
-  msp $ typeOf h
+  --msp $ typeOf h
   let q = runMut h
-  msp $ typeOf q
+  --msp $ typeOf q
   let ((), m'''') = q m'''
-  msp $ typeOf m''''
-  msp m''''
+  --msp $ typeOf m''''
+  --msp m''''
   let ((), m''''') = runMut (do n <- getMut "a"
                                 setMut "a" (n+1)) m''''
-  msp $ typeOf m'''''
+  --msp $ typeOf m'''''
   msp m'''''
-  --((), m'''') <- runMut h m'''
-  --let ((), m'''') = runMut $ do n <- getMut "a"
-                                --setMut "a" (n+1)
+
   msp "hi"
   --x <- muts
   --msp x

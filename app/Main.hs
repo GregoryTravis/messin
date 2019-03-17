@@ -33,6 +33,21 @@ runMut Mut{ mutStep  = mutStep } = mutStep
 incMut :: (Ord k, Num v) => k -> Mut (M.Map k v) ()
 incMut k = composeMutsV (getMut k) (\n -> setMut k (n + 1))
 
+instance Functor (Mut s) where
+  -- fmap :: (a -> b) -> Mut s a -> Mut s b
+  fmap f Mut{mutStep=mutStep} = Mut{mutStep=c}
+    where c s = case mutStep s of (x, s') -> (f x, s')
+
+instance Applicative (Mut s) where
+  -- pure :: a -> Mut s a
+  pure a = Mut{mutStep = \s -> (a, s)}
+  -- (<*>) :: Mut s (a -> b) -> Mut s a -> Mut s b
+  Mut{mutStep=f} <*> Mut{mutStep=a} = Mut{mutStep=c}
+    where c s = case f s of (f, s') -> case a s' of (x, s'') -> (f x, s'')
+
+--instance Monad (Mut s) where
+  --(>>=) = composeMutsV
+
 main :: IO ()
 main = do
   let m :: M.Map String Int

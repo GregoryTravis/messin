@@ -49,21 +49,6 @@ instance Applicative (Mut s) where
 instance Monad (Mut s) where
   (>>=) = composeMutsV
 
-newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
-setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
-composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
-composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
-  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
-  where c s = do (x, s') <- a s
-                 case f x of MutT{ mutTStep = b } -> b s'
-setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
-getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
-getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
-incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
-incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
-runMutT :: s -> MutT m s a -> m (a, s)
-runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
-
 withMut = do
   let m :: M.Map String Int
       m = M.empty
@@ -121,9 +106,47 @@ withMutT = do
   --x <- muts
   --msp x
 
+newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
+setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
+composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
+composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
+  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
+  where c s = do (x, s') <- a s
+                 case f x of MutT{ mutTStep = b } -> b s'
+setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
+getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
+getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
+incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
+incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
+runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
+runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
+
+instance Monad m => Functor (MutT m s) where
+  -- fmap :: (a -> b) -> Mut s a -> Mut s b
+  fmap f MutT{mutTStep=mutTStep} = MutT{mutTStep=c}
+    --where c s = case mutTStep s of (x, s') -> return (f x, s')
+    where c s = do (x, s') <- mutTStep s
+                   return (f x, s')
+
+instance Monad m => Applicative (MutT m s) where
+  -- pure :: a -> MutT s a
+  pure a = MutT{mutTStep = \s -> return (a, s)}
+  -- (<*>) :: MutT s (a -> b) -> MutT s a -> MutT s b
+  MutT{mutTStep=f} <*> MutT{mutTStep=a} = MutT{mutTStep=c}
+    --where c s = case f s of (f, s') -> case a s' of (x, s'') -> (f x, s'')
+    where c s = do (f, s') <- f s
+                   (x, s'') <- a s'
+                   return (f x, s'')
+
+instance Monad m => Monad (MutT m s) where
+  (>>=) = composeMutTsV
+
 monadly = do
+  let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
+  let y = incMutT "a" :: MutT IO (M.Map String Int) ()
+  --let z = x >>= \s -> y
   ((), m) <- runMutT M.empty $ do setMutT "a" 50
-                                  --incMutT "a"
+                                  incMutT "a"
   msp m
 
 main = do

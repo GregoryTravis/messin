@@ -11,6 +11,8 @@ module Util
 , feesp
 , sp
 , msp
+, tsp
+, ttsp
 , fromLeftReal
 , mappily
 , mcompose
@@ -22,6 +24,7 @@ import Control.Exception.Base
 import Data.Either
 import Data.Text (unpack)
 import Data.Text.Lazy (toStrict)
+import Data.Typeable (typeOf)
 import System.CPUTime
 import System.IO (appendFile)
 import System.IO.Unsafe
@@ -56,6 +59,9 @@ feesp s a = a
 sp x = unpack $ toStrict $ pShowNoColor $ x
 --sp x = show x
 msp x = putStrLn $ sp x
+
+tsp x = putStrLn $ (sp x) ++ " :: " ++ (sp (typeOf x))
+ttsp x = putStrLn $ "_ :: " ++ (sp (typeOf x))
 
 -- Really surprised this doesn't exist
 fromLeftReal (Left a) = a

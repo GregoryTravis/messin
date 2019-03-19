@@ -29,7 +29,7 @@ setMut k v = Mut { mutStep = \m -> ((), M.insert k v m) }
 getMut :: Ord k => k -> Mut (M.Map k v) v
 getMut k = Mut { mutStep = \m -> (m M.! k, m) }
 runMut :: Mut s a -> s -> (a, s)
-runMut Mut{ mutStep  = mutStep } = mutStep
+runMut Mut{ mutStep = mutStep } = mutStep
 
 incMut :: (Ord k, Num v) => k -> Mut (M.Map k v) ()
 incMut k = composeMutsV (getMut k) (\n -> setMut k (n + 1))
@@ -52,9 +52,12 @@ instance Monad (Mut s) where
 newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
 setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
 setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
+getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
+getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
+runMutT :: MutT m s a -> s -> m (a, s)
+runMutT MutT{ mutTStep = mutTStep } = mutTStep
 
-main :: IO ()
-main = do
+withMut = do
   let m :: M.Map String Int
       m = M.empty
   let ((), m') = runMut (setMut "a" 5) m
@@ -79,6 +82,31 @@ main = do
   --msp $ typeOf m'''''
   msp m'''''
 
+{-
+  let fee = (runMutT :: MutT IO (M.Map String Int) () -> (M.Map String Int) -> IO ((), (M.Map String Int)))
+  ttsp fee
+  let arg = (setMutT "a" 50) :: MutT IO (M.Map String Int) ()
+  ttsp arg
+  let app1 = fee arg
+  ttsp app1
+  let arg2 = M.empty :: (M.Map String Int)
+  ttsp arg2
+  let app2 = app1 arg2
+  ttsp app2
+  voo <- app2
+  tsp voo
+  --voo2 <- runMutT (setMutT "a" (50::Int)) M.empty
+-}
+
+withMutT = do
+  voo2 <- runMutT (setMutT "a" 50) M.empty
+  msp voo2
+  --let x :: s -> IO ((), M.Map String Int)
+      --x = runMutT (setMutT "a" 50)
+  --tsp x
+
   msp "hi"
   --x <- muts
   --msp x
+
+main = withMutT

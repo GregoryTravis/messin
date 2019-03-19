@@ -51,9 +51,16 @@ instance Monad (Mut s) where
 
 newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
 setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
+composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
+composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
+  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
+  where c s = do (x, s') <- a s
+                 case f x of MutT{ mutTStep = b } -> b s'
 setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
 getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
 getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
+incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
+incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
 runMutT :: MutT m s a -> s -> m (a, s)
 runMutT MutT{ mutTStep = mutTStep } = mutTStep
 
@@ -99,8 +106,13 @@ withMut = do
 -}
 
 withMutT = do
-  voo2 <- runMutT (setMutT "a" 50) M.empty
-  msp voo2
+  ((), m) <- runMutT (setMutT "a" 50) M.empty
+  msp m
+  (50, m') <- runMutT (getMutT "a") m
+  msp m'
+  massert $ m == m'
+  ((), m'') <- runMutT (incMutT "a") m'
+  msp m''
   --let x :: s -> IO ((), M.Map String Int)
       --x = runMutT (setMutT "a" 50)
   --tsp x

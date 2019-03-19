@@ -61,8 +61,8 @@ getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
 getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
 incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
 incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
-runMutT :: MutT m s a -> s -> m (a, s)
-runMutT MutT{ mutTStep = mutTStep } = mutTStep
+runMutT :: s -> MutT m s a -> m (a, s)
+runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
 
 withMut = do
   let m :: M.Map String Int
@@ -106,12 +106,12 @@ withMut = do
 -}
 
 withMutT = do
-  ((), m) <- runMutT (setMutT "a" 50) M.empty
+  ((), m) <- runMutT M.empty (setMutT "a" 50)
   msp m
-  (50, m') <- runMutT (getMutT "a") m
+  (50, m') <- runMutT m (getMutT "a")
   msp m'
   massert $ m == m'
-  ((), m'') <- runMutT (incMutT "a") m'
+  ((), m'') <- runMutT m' (incMutT "a")
   msp m''
   --let x :: s -> IO ((), M.Map String Int)
       --x = runMutT (setMutT "a" 50)
@@ -121,4 +121,12 @@ withMutT = do
   --x <- muts
   --msp x
 
-main = withMutT
+monadly = do
+  ((), m) <- runMutT M.empty $ do setMutT "a" 50
+                                  --incMutT "a"
+  msp m
+
+main = do
+  --withMut
+  --withMutT
+  monadly

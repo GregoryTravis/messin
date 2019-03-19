@@ -27,10 +27,7 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       Util
-  other-modules:
-      Paths_messin
   hs-source-dirs:
       src
   build-depends:

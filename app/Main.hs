@@ -107,12 +107,12 @@ withMutT = do
   --msp x
 
 newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
-setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
 composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
 composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
   --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
   where c s = do (x, s') <- a s
                  case f x of MutT{ mutTStep = b } -> b s'
+setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
 setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
 getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
 getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
@@ -120,6 +120,8 @@ incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
 incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
 runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
 runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
+--mspInMutT :: (Monad m) => String -> MutT m (M.Map k v) ()
+--mspInMutT s = MutT{mutTStep = \s -> (do msp s ; return ((), s))}
 
 instance Monad m => Functor (MutT m s) where
   -- fmap :: (a -> b) -> Mut s a -> Mut s b
@@ -145,7 +147,12 @@ monadly = do
   let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
   let y = incMutT "a" :: MutT IO (M.Map String Int) ()
   --let z = x >>= \s -> y
+  let x' :: IO ((), M.Map String Int)
+      x' = runMutT M.empty $ do setMutT "a" 50
+                                --msp "ho"
+                                incMutT "a"
   ((), m) <- runMutT M.empty $ do setMutT "a" 50
+                                  --msp "ho"
                                   incMutT "a"
   msp m
 

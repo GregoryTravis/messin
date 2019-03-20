@@ -156,9 +156,15 @@ monadly = do
   let x' :: IO ((), M.Map String Int)
       x' = runMutT M.empty $ do setMutT "a" 60
                                 liftMutT $ msp "gosh4"
+                                liftMutT $ msp "gosh5"
+                                liftMutT $ do msp "gosh6"
+                                              msp "gosh7"
                                 incMutT "a"
   ((), m) <- runMutT M.empty $ do setMutT "a" 60
                                   liftMutT $ msp "gosh4"
+                                  liftMutT $ msp "gosh5"
+                                  liftMutT $ do msp "gosh6"
+                                                msp "gosh7"
                                   incMutT "a"
   msp m
 

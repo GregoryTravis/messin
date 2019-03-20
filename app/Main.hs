@@ -8,6 +8,7 @@ import System.IO.Error (isEOFError)
 
 import Util
 
+{-
 muts :: IO (Maybe (String, String))
 muts = do
   input <- try getLine
@@ -16,6 +17,7 @@ muts = do
     Right line -> do
       let [cmd, arg] = words line
       return $ Just (cmd, arg)
+-}
 
 newtype Mut s a = Mut { mutStep :: s -> (a, s) }
 composeMuts :: Mut s a -> Mut s b -> Mut s b
@@ -156,7 +158,21 @@ monadly = do
                                   incMutT "a"
   msp m
 
+monadlyNoDo =
+  -- x, y ok because of annotations
+  let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
+      y = incMutT "a" :: MutT IO (M.Map String Int) ()
+      -- nope, needs annotation
+      -- y' = incMutT "a"
+      -- Doesn't work without this type annotation
+      x' :: IO ((), M.Map String Int)
+      x' = runMutT M.empty $ do setMutT "a" 50
+                                --msp "ho"
+                                incMutT "a"
+   in 1
+
 main = do
   --withMut
   --withMutT
   monadly
+  --msp monadlyNoDo

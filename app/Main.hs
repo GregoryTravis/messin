@@ -170,6 +170,10 @@ mspMutIOT :: String -> MutIOT (M.Map k v) ()
 mspMutIOT str = MutIOT { mutIOTStep = \s -> do { msp str ; return ((), s) } }
 runMutIOT :: s -> MutIOT s a -> IO (a, s)
 runMutIOT s MutIOT{ mutIOTStep = mutIOTStep } = mutIOTStep s
+liftMutIOT :: IO a -> MutIOT (M.Map k v) a
+liftMutIOT io = MutIOT{mutIOTStep = step}
+  where step s = do a <- io
+                    return (a, s)
 
 instance Functor (MutIOT s) where
   -- fmap :: (a -> b) -> Mut s a -> Mut s b
@@ -189,16 +193,9 @@ instance Monad (MutIOT s) where
   (>>=) = composeMutIOTsV
 
 monadlyIO = do
-  let x = setMutIOT "a" 50 :: MutIOT (M.Map String Int) ()
-  --let y = incMutIOT "a" :: MutIOT (M.Map String Int) ()
-  --let z = x >>= \s -> y
-  let x' :: IO ((), M.Map String Int)
-      x' = runMutIOT M.empty $ do setMutIOT "a" 50
-                                  mspMutIOT "gosh"
-                                  --msp "ho"
-                                  --incMutIOT "a"
   ((), m) <- runMutIOT M.empty $ do setMutIOT "a" 50
                                     mspMutIOT "gosh2"
+                                    liftMutIOT $ msp "gosh3"
                                     --msp "ho"
                                     --incMutIOT "a"
   msp "oh"

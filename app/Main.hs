@@ -158,6 +158,51 @@ monadly = do
                                   incMutT "a"
   msp m
 
+newtype MutIOT s a = MutIOT { mutIOTStep :: s -> IO (a, s) }
+composeMutIOTsV :: MutIOT s a -> (a -> MutIOT s b) -> MutIOT s b
+composeMutIOTsV MutIOT{ mutIOTStep = a } f = MutIOT { mutIOTStep = c }
+  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
+  where c s = do (x, s') <- a s
+                 case f x of MutIOT{ mutIOTStep = b } -> b s'
+setMutIOT :: Ord k => k -> v -> MutIOT (M.Map k v) ()
+setMutIOT k v = MutIOT { mutIOTStep = \s -> return ((), M.insert k v s) }
+mspMutIOT :: String -> MutIOT (M.Map k v) ()
+mspMutIOT str = MutIOT { mutIOTStep = \s -> do { msp str ; return ((), s) } }
+runMutIOT :: s -> MutIOT s a -> IO (a, s)
+runMutIOT s MutIOT{ mutIOTStep = mutIOTStep } = mutIOTStep s
+
+instance Functor (MutIOT s) where
+  -- fmap :: (a -> b) -> Mut s a -> Mut s b
+  fmap f MutIOT{mutIOTStep=mutIOTStep} = MutIOT{mutIOTStep=c}
+    --where c s = case mutTStep s of (x, s') -> return (f x, s')
+    where c s = do (x, s') <- mutIOTStep s
+                   return (f x, s')
+
+instance Applicative (MutIOT s) where
+  pure a = MutIOT{mutIOTStep = \s -> return (a, s)}
+  MutIOT{mutIOTStep=f} <*> MutIOT{mutIOTStep=a} = MutIOT{mutIOTStep=c}
+    where c s = do (f, s') <- f s
+                   (x, s'') <- a s'
+                   return (f x, s'')
+
+instance Monad (MutIOT s) where
+  (>>=) = composeMutIOTsV
+
+monadlyIO = do
+  let x = setMutIOT "a" 50 :: MutIOT (M.Map String Int) ()
+  --let y = incMutIOT "a" :: MutIOT (M.Map String Int) ()
+  --let z = x >>= \s -> y
+  let x' :: IO ((), M.Map String Int)
+      x' = runMutIOT M.empty $ do setMutIOT "a" 50
+                                  mspMutIOT "gosh"
+                                  --msp "ho"
+                                  --incMutIOT "a"
+  ((), m) <- runMutIOT M.empty $ do setMutIOT "a" 50
+                                    mspMutIOT "gosh2"
+                                    --msp "ho"
+                                    --incMutIOT "a"
+  msp "oh"
+
 monadlyNoDo =
   -- x, y ok because of annotations
   let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
@@ -174,5 +219,6 @@ monadlyNoDo =
 main = do
   --withMut
   --withMutT
-  monadly
+  --monadly
   --msp monadlyNoDo
+  monadlyIO

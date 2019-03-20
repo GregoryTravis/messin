@@ -122,6 +122,10 @@ incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
 incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
 runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
 runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
+liftMutT :: (Monad m) => m a -> MutT m (M.Map k v) a
+liftMutT action = MutT{mutTStep=step}
+  where step s = do a <- action
+                    return (a, s)
 --mspInMutT :: (Monad m) => String -> MutT m (M.Map k v) ()
 --mspInMutT s = MutT{mutTStep = \s -> (do msp s ; return ((), s))}
 
@@ -150,11 +154,11 @@ monadly = do
   let y = incMutT "a" :: MutT IO (M.Map String Int) ()
   --let z = x >>= \s -> y
   let x' :: IO ((), M.Map String Int)
-      x' = runMutT M.empty $ do setMutT "a" 50
-                                --msp "ho"
+      x' = runMutT M.empty $ do setMutT "a" 60
+                                liftMutT $ msp "gosh4"
                                 incMutT "a"
-  ((), m) <- runMutT M.empty $ do setMutT "a" 50
-                                  --msp "ho"
+  ((), m) <- runMutT M.empty $ do setMutT "a" 60
+                                  liftMutT $ msp "gosh4"
                                   incMutT "a"
   msp m
 
@@ -216,6 +220,6 @@ monadlyNoDo =
 main = do
   --withMut
   --withMutT
-  --monadly
+  monadly
   --msp monadlyNoDo
-  monadlyIO
+  --monadlyIO

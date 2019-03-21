@@ -109,6 +109,10 @@ withMutT = do
   --msp x
 
 newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
+mWrap :: (Monad m) => (s -> m (a, s)) -> MutT m s a
+mWrap f = MutT{mutTStep = f}
+mUnwrap :: (Monad m) => MutT m s a -> s -> m (a, s)
+mUnwrap = mutTStep
 composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
 composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
   --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
@@ -167,6 +171,9 @@ monadly = do
                                                 msp "gosh7"
                                   incMutT "a"
   msp m
+  ((), m') <- runMutT m $
+                (getMutT "a") >>= (\n -> setMutT "a" (n + 1)) >> (liftMutT $ msp "gosh10")
+  msp m'
 
 newtype MutIOT s a = MutIOT { mutIOTStep :: s -> IO (a, s) }
 composeMutIOTsV :: MutIOT s a -> (a -> MutIOT s b) -> MutIOT s b

@@ -13,6 +13,8 @@ module Util
 , msp
 , tsp
 , ttsp
+, tesp
+, ttesp
 , fromLeftReal
 , mappily
 , mcompose
@@ -62,6 +64,8 @@ msp x = putStrLn $ sp x
 
 tsp x = putStrLn $ (sp x) ++ " :: " ++ (sp (typeOf x))
 ttsp x = putStrLn $ "_ :: " ++ (sp (typeOf x))
+tesp x = eesp (sp x ++ " :: " ++ (sp (typeOf x))) x
+ttesp x = eesp ("_ :: " ++ (sp (typeOf x))) x
 
 -- Really surprised this doesn't exist
 fromLeftReal (Left a) = a

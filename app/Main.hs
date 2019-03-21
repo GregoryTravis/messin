@@ -176,6 +176,11 @@ monadly = do
                 (\n -> setMutT "a" (n + 1)) >>
                 (liftMutT $ msp "gosh10")
   msp m'
+  let bb' :: MutT IO (M.Map String Int) ()
+      bb' = MutT { mutTStep = \s -> return (s M.! "a", s) } >>=
+            \n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) } >>
+            MutT{mutTStep = \s -> do a <- msp "gosh11"
+                                     return (a, s)}
   ((), m'') <- runMutT m' $
                  MutT { mutTStep = \s -> return (s M.! "a", s) } >>=
                  --(getMutT "a") >>=

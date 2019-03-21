@@ -155,8 +155,7 @@ instance Monad m => Monad (MutT m s) where
 
 monadly = do
   let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
-  let y = incMutT "a" :: MutT IO (M.Map String Int) ()
-  --let z = x >>= \s -> y
+  let y = incMutT "a" :: MutT IO (M.Map String Int) () --let z = x >>= \s -> y
   let x' :: IO ((), M.Map String Int)
       x' = runMutT M.empty $ do setMutT "a" 60
                                 liftMutT $ msp "gosh4"
@@ -172,8 +171,28 @@ monadly = do
                                   incMutT "a"
   msp m
   ((), m') <- runMutT m $
-                (getMutT "a") >>= (\n -> setMutT "a" (n + 1)) >> (liftMutT $ msp "gosh10")
+                (getMutT "a") >>=
+                (\n -> setMutT "a" (n + 1)) >>
+                (liftMutT $ msp "gosh10")
   msp m'
+  ((), m'') <- runMutT m' $
+                 MutT { mutTStep = \s -> return (s M.! "a", s) } >>=
+                 --(getMutT "a") >>=
+                 \n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) } >>
+                 --(\n -> setMutT "a" (n + 1)) >>
+                 (liftMutT $ msp "gosh11")
+  msp m''
+{-
+composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
+  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
+  where c s = do (x, s') <- a s
+                 case f x of MutT{ mutTStep = b } -> b s'
+-}
+  ((), m''') <- runMutT m'' $
+                 (MutT{mutTStep = \s -> do (x, s') <- (\s -> return (s M.! "a", s)) s
+                                           case (\n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) }) x of MutT{mutTStep=b} -> b s'}) >>
+                 (liftMutT $ msp "gosh12")
+  msp m'''
 
 newtype MutIOT s a = MutIOT { mutIOTStep :: s -> IO (a, s) }
 composeMutIOTsV :: MutIOT s a -> (a -> MutIOT s b) -> MutIOT s b

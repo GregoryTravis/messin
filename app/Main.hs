@@ -108,26 +108,22 @@ withMutT = do
   --x <- muts
   --msp x
 
-newtype MutT m s a = MutT { mutTStep :: s -> m (a, s) }
-mWrap :: (Monad m) => (s -> m (a, s)) -> MutT m s a
-mWrap f = MutT{mutTStep = f}
-mUnwrap :: (Monad m) => MutT m s a -> s -> m (a, s)
-mUnwrap = mutTStep
+newtype MutT m s a = MutT (s -> m (a, s))
 composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
-composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
+composeMutTsV (MutT a) f = MutT c
   --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
   where c s = do (x, s') <- a s
-                 case f x of MutT{ mutTStep = b } -> b s'
+                 case f x of MutT b -> b s'
 setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
-setMutT k v = MutT { mutTStep = \s -> return ((), M.insert k v s) }
+setMutT k v = MutT (\s -> return ((), M.insert k v s))
 getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
-getMutT k = MutT { mutTStep = \s -> return (s M.! k, s) }
+getMutT k = MutT (\s -> return (s M.! k, s))
 incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
 incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
 runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
-runMutT s MutT{ mutTStep = mutTStep } = mutTStep s
+runMutT s (MutT pl) = pl s
 liftMutT :: (Monad m) => m a -> MutT m (M.Map k v) a
-liftMutT action = MutT{mutTStep=step}
+liftMutT action = MutT step
   where step s = do a <- action
                     return (a, s)
 --mspInMutT :: (Monad m) => String -> MutT m (M.Map k v) ()
@@ -135,16 +131,16 @@ liftMutT action = MutT{mutTStep=step}
 
 instance Monad m => Functor (MutT m s) where
   -- fmap :: (a -> b) -> Mut s a -> Mut s b
-  fmap f MutT{mutTStep=mutTStep} = MutT{mutTStep=c}
+  fmap f (MutT pl) = MutT c
     --where c s = case mutTStep s of (x, s') -> return (f x, s')
-    where c s = do (x, s') <- mutTStep s
+    where c s = do (x, s') <- pl s
                    return (f x, s')
 
 instance Monad m => Applicative (MutT m s) where
   -- pure :: a -> MutT s a
-  pure a = MutT{mutTStep = \s -> return (a, s)}
+  pure a = MutT (\s -> return (a, s))
   -- (<*>) :: MutT s (a -> b) -> MutT s a -> MutT s b
-  MutT{mutTStep=f} <*> MutT{mutTStep=a} = MutT{mutTStep=c}
+  MutT f <*> MutT a = MutT c
     --where c s = case f s of (f, s') -> case a s' of (x, s'') -> (f x, s'')
     where c s = do (f, s') <- f s
                    (x, s'') <- a s'
@@ -177,17 +173,17 @@ monadly = do
                 (liftMutT $ msp "gosh10")
   msp m'
   let bb' :: MutT IO (M.Map String Int) ()
-      bb' = MutT { mutTStep = \s -> return (s M.! "a", s) } >>=
-            \n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) } >>
-            MutT{mutTStep = \s -> do a <- msp "gosh11"
-                                     return (a, s)}
+      bb' = MutT (\s -> return (s M.! "a", s)) >>=
+            \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>
+            MutT (\s -> do a <- msp "gosh11"
+                           return (a, s))
   ((), m'') <- runMutT m' $
-                 MutT { mutTStep = \s -> return (s M.! "a", s) } >>=
+                 MutT (\s -> return (s M.! "a", s)) >>=
                  --(getMutT "a") >>=
-                 \n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) } >>
+                 \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>
                  --(\n -> setMutT "a" (n + 1)) >>
-                 MutT{mutTStep = \s -> do a <- msp "gosh11"
-                                          return (a, s)}
+                 MutT (\s -> do a <- msp "gosh11"
+                                return (a, s))
                  --(liftMutT $ msp "gosh11")
   msp m''
 {-
@@ -197,9 +193,9 @@ composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }
                  case f x of MutT{ mutTStep = b } -> b s'
 -}
   ((), m''') <- runMutT m'' $
-                 (MutT{mutTStep = \s -> do (x, s') <- (\s -> return (s M.! "a", s)) s
+                 (MutT (\s -> do (x, s') <- (\s -> return (s M.! "a", s)) s
                                            --case (\n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) }) x of MutT{mutTStep=b} -> b s'}) >>
-                                           (\n -> \s -> return ((), M.insert "a" (n+1) s)) x s'}) >>
+                                 (\n -> \s -> return ((), M.insert "a" (n+1) s)) x s')) >>
                  (liftMutT $ msp "gosh12")
   msp m'''
 

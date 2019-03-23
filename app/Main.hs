@@ -82,7 +82,6 @@ monadly = do
   msp m''
   ((), m''') <- runMutT m'' $
                  (MutT (\s -> do (x, s') <- (\s -> return (s M.! "a", s)) s
-                                           --case (\n -> MutT { mutTStep = \s -> return ((), M.insert "a" (n+1) s) }) x of MutT{mutTStep=b} -> b s'}) >>
                                  (\n -> \s -> return ((), M.insert "a" (n+1) s)) x s')) >>
                  (liftMutT $ msp "gosh12")
   msp m'''

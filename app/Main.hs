@@ -118,9 +118,8 @@ incMutT k = (getMutT k) >>= (\n -> setMutT k (n + 1))
 runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
 runMutT s (MutT pl) = pl s
 liftMutT :: (Monad m) => m a -> MutT m (M.Map k v) a
-liftMutT action = MutT step
-  where step s = do a <- action
-                    return (a, s)
+liftMutT action = MutT $ \s -> do a <- action
+                                  return (a, s)
 --mspInMutT :: (Monad m) => String -> MutT m (M.Map k v) ()
 --mspInMutT s = MutT{mutTStep = \s -> (do msp s ; return ((), s))}
 
@@ -142,9 +141,7 @@ instance Monad m => Applicative (MutT m s) where
                    return (f x, s'')
 
 instance Monad m => Monad (MutT m s) where
-  (MutT a) >>= f = MutT c
-    where c s = do (x, s') <- a s
-                   case f x of MutT b -> b s'
+  (MutT a) >>= f = MutT $ \s -> (a s) >>= \(x, s') -> case f x of MutT b -> b s'
 
 monadly = do
   let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()
@@ -174,6 +171,12 @@ monadly = do
             \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>
             MutT (\s -> do a <- msp "gosh11"
                            return (a, s))
+  let q :: IO ((), M.Map String Int)
+      q = runMutT m' $
+                 MutT (\s -> return (s M.! "a", s)) >>=
+                 \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>=
+                 \() -> MutT (\s -> do a <- msp "gosh11"
+                                       return (a, s))
   ((), m'') <- runMutT m' $
                  MutT (\s -> return (s M.! "a", s)) >>=
                  \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>=

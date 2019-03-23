@@ -109,17 +109,12 @@ withMutT = do
   --msp x
 
 newtype MutT m s a = MutT (s -> m (a, s))
-composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
-composeMutTsV (MutT a) f = MutT c
-  --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
-  where c s = do (x, s') <- a s
-                 case f x of MutT b -> b s'
 setMutT :: (Monad m, Ord k) => k -> v -> MutT m (M.Map k v) ()
 setMutT k v = MutT (\s -> return ((), M.insert k v s))
 getMutT :: (Monad m, Ord k) => k -> MutT m (M.Map k v) v
 getMutT k = MutT (\s -> return (s M.! k, s))
 incMutT :: (Monad m, Ord k, Num v) => k -> MutT m (M.Map k v) ()
-incMutT k = composeMutTsV (getMutT k) (\n -> setMutT k (n + 1))
+incMutT k = (getMutT k) >>= (\n -> setMutT k (n + 1))
 runMutT :: (Monad m) => s -> MutT m s a -> m (a, s)
 runMutT s (MutT pl) = pl s
 liftMutT :: (Monad m) => m a -> MutT m (M.Map k v) a
@@ -147,7 +142,11 @@ instance Monad m => Applicative (MutT m s) where
                    return (f x, s'')
 
 instance Monad m => Monad (MutT m s) where
-  (>>=) = composeMutTsV
+  -- composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
+  (MutT a) >>= f = MutT c
+    --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
+    where c s = do (x, s') <- a s
+                   case f x of MutT b -> b s'
 
 monadly = do
   let x = setMutT "a" 50 :: MutT IO (M.Map String Int) ()

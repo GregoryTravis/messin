@@ -142,9 +142,7 @@ instance Monad m => Applicative (MutT m s) where
                    return (f x, s'')
 
 instance Monad m => Monad (MutT m s) where
-  -- composeMutTsV :: (Monad m) => MutT m s a -> (a -> MutT m s b) -> MutT m s b
   (MutT a) >>= f = MutT c
-    --where c s = case a s of (x, s') -> case f x of Mut{ mutStep = b } -> return $ b s'
     where c s = do (x, s') <- a s
                    case f x of MutT b -> b s'
 
@@ -178,12 +176,9 @@ monadly = do
                            return (a, s))
   ((), m'') <- runMutT m' $
                  MutT (\s -> return (s M.! "a", s)) >>=
-                 --(getMutT "a") >>=
-                 \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>
-                 --(\n -> setMutT "a" (n + 1)) >>
-                 MutT (\s -> do a <- msp "gosh11"
-                                return (a, s))
-                 --(liftMutT $ msp "gosh11")
+                 \n -> MutT (\s -> return ((), M.insert "a" (n+1) s)) >>=
+                 \() -> MutT (\s -> do a <- msp "gosh11"
+                                       return (a, s))
   msp m''
 {-
 composeMutTsV MutT{ mutTStep = a } f = MutT { mutTStep = c }

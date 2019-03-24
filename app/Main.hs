@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Exception (try)
+import Control.Monad (ap, liftM)
 import qualified Data.Map.Strict as M
 import Data.Typeable
 import System.IO (getLine, putStrLn)
@@ -20,6 +21,7 @@ runMutT s (MutT pl) = pl s
 liftMutT :: (Monad m) => m a -> MutT m (M.Map k v) a
 liftMutT action = MutT $ \s -> do a <- action
                                   return (a, s)
+{-
 instance Monad m => Functor (MutT m s) where
   -- fmap :: (a -> b) -> Mut s a -> Mut s b
   fmap f (MutT pl) = MutT c
@@ -36,8 +38,18 @@ instance Monad m => Applicative (MutT m s) where
     where c s = do (f, s') <- f s
                    (x, s'') <- a s'
                    return (f x, s'')
+-}
+
+instance Monad m => Applicative (MutT m s) where
+    pure = return
+    (<*>) = ap
+
+instance Monad m => Functor (MutT m s) where
+    fmap = liftM
 
 instance Monad m => Monad (MutT m s) where
+  -- return :: (Monad M) => a -> Mut m s a
+  -- return a = MutT (\s -> return (a, s))
   (MutT a) >>= f = MutT $ \s -> (a s) >>= \(x, s') -> case f x of MutT b -> b s'
 
 monadly = do

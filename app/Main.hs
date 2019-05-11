@@ -5,9 +5,13 @@ module Main where
 + DB field accessor node constructors
 + Make it a tuple
 + backwards function
-- clean up
++ clean up
+- write takes a node instead of a raw value (necessary to not have to pass db everywhere)
+- string literal too
 - nequal
-- write takes a node instead of a raw value
+- Node monad: collect writes, then apply them sequentially
+- Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
+  modified db
 - N
 - Rename to hide orig stuff and rename node stuff to look orig
 - How are errors
@@ -45,8 +49,8 @@ _b = FNode (\db -> b db) norev
 _c = FNode (\db -> c db) (\v db -> db { c = v })
 _bi i = FNode (\db -> b db !! i) norev
 
-write :: FNode a -> a -> DB -> DB
-write (FNode f b) v db = b v db
+write :: FNode a -> FNode a -> DB -> DB
+write (FNode f b) v db = b (fnread v db) db
 
 nsp n = msp $ fnread n db
 
@@ -55,12 +59,12 @@ db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 main = do
   msp "hi"
   let fnoo :: FNode Int
-      fnoo = 10
+      fnoo = 121
   nsp fnoo
   nsp _a
   nsp _b
   nsp _c
   nsp $ _bi 1
-  msp $ write _a 120 db
-  msp $ write _c "zxcv" db
-  msp $ write _a 120 $ write _c "zxcv" db
+  msp $ write _a fnoo db
+  --msp $ write _c "zxcv" db
+  --msp $ write _a 120 $ write _c "zxcv" db

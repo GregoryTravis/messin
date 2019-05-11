@@ -3,7 +3,8 @@ module Main where
 {-
 + Node as wrapped DB -> a
 + DB field accessor node constructors
-- backwards function
++ Make it a tuple
++ backwards function
 - clean up
 - Rename to hide orig stuff and rename node stuff to look orig
 - How are errors
@@ -41,28 +42,34 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 
 db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
-root db = FNode id
+norev = undefined
 
-data FNode b = FNode (DB -> b)
+root db = FNode id rid
+  where rid db _ = db
+
+data FNode b = FNode (DB -> b) (b -> DB -> DB)
 
 fshow :: Show b => FNode b -> DB -> String
-fshow (FNode fb) db = show $ fb db
+fshow (FNode fb rfb) db = show $ fb db
 
-fnread (FNode fb) db = fb db
+fnread (FNode fb rfb) db = fb db
 
 instance Num a => Num (FNode a) where
-  (+) (FNode fa) (FNode fb) = FNode $ \db -> fa db + fb db
-  (*) (FNode fa) (FNode fb) = FNode $ \db -> fa db * fb db
-  abs (FNode fa) = FNode $ \db -> abs $ fa db
-  signum (FNode fa) = FNode $ \db -> signum $ fa db
-  fromInteger i = FNode $ \db -> fromInteger i
-  negate (FNode fa) = FNode $ \db -> negate $ fa db
+  (+) (FNode fa _) (FNode fb _) = FNode (\db -> fa db + fb db) norev
+  (*) (FNode fa _) (FNode fb _ ) = FNode (\db -> fa db * fb db) norev
+  abs (FNode fa _) = FNode (\db -> abs $ fa db) norev
+  signum (FNode fa _) = FNode (\db -> signum $ fa db) norev
+  fromInteger i = FNode (\db -> fromInteger i) norev
+  negate (FNode fa _) = FNode (\db -> negate $ fa db) norev
 
 _a :: FNode Int
-_a = FNode $ \db -> a db
-_b = FNode $ \db -> b db
-_c = FNode $ \db -> c db
-_bi i = FNode $ \db -> b db !! i
+_a = FNode (\db -> a db) (\v db -> db { a = v })
+_b = FNode (\db -> b db) norev
+_c = FNode (\db -> c db) (\v db -> db { c = v })
+_bi i = FNode (\db -> b db !! i) norev
+
+write :: FNode a -> a -> DB -> DB
+write (FNode f r) v db = r v db
 
 nsp n = msp $ fnread n db
 
@@ -80,6 +87,9 @@ main = do
   nsp _b
   nsp _c
   nsp $ _bi 1
+  msp $ write _a 120 db
+  msp $ write _c "zxcv" db
+  msp $ write _a 120 $ write _c "zxcv" db
 {-
   let foo :: Node Int
       foo = 10

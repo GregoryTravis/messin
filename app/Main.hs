@@ -1,11 +1,13 @@
 module Main where
 
--- - Node as wrapped DB -> a
--- DB field accessor node constructors
--- backwards function
--- clean up
--- Rename to hide orig stuff and rename node stuff to look orig
--- How are errors
+{-
++ Node as wrapped DB -> a
++ DB field accessor node constructors
+- backwards function
+- clean up
+- Rename to hide orig stuff and rename node stuff to look orig
+- How are errors
+-}
 
 import Control.Applicative
 import Util 

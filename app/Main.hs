@@ -1,5 +1,8 @@
 module Main where
 
+-- Node as wrapped DB -> a
+-- Rename to hide orig stuff and rename node stuff to look orig
+
 import Control.Applicative
 import Util 
 
@@ -10,7 +13,26 @@ nequal :: Eq a => Node a -> Node a -> Node Bool
 nequal (Node a) (Node b) = Node $ a == b
 
 nread (Node a) = a
--- (+), (*), abs, signum, fromInteger, (negate | (-))
+
+data DB = DB { a :: Int, b :: [Int] }
+  deriving (Read, Show)
+
+db = DB { a = 12, b = [2, 3, 4] }
+
+data FNode b = FNode (DB -> b)
+
+fshow :: Show b => FNode b -> DB -> String
+fshow (FNode fb) db = show $ fb db
+
+fnread (FNode fb) db = fb db
+
+instance Num a => Num (FNode a) where
+  (+) (FNode fa) (FNode fb) = FNode $ \db -> fa db + fb db
+  (*) (FNode fa) (FNode fb) = FNode $ \db -> fa db * fb db
+  abs (FNode fa) = FNode $ \db -> abs $ fa db
+  signum (FNode fa) = FNode $ \db -> signum $ fa db
+  fromInteger i = FNode $ \db -> fromInteger i
+  negate (FNode fa) = FNode $ \db -> negate $ fa db
 
 instance Num a => Num (Node a) where
   (+) (Node a) (Node b) = Node $ a + b
@@ -33,6 +55,9 @@ main = do
   msp $ nread $ nequal (Node 10) (Node 20)
   --msp $ nread $ (Node 10) == (Node 20)
   msp "hi"
+  let fnoo :: FNode Int
+      fnoo = 10
+  msp $ fnread fnoo db
   let foo :: Node Int
       foo = 10
   msp foo
@@ -41,6 +66,8 @@ main = do
   msp $ (sin^2 + cos^2) 123.4
   let voo :: (a -> Int)
       voo = 12
+  msp $ nequal (Node 4) (Node 4)
+  msp $ nequal (Node 4) (Node 5)
   msp "Ho"
 
 {-

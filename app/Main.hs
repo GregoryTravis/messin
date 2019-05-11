@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Applicative
 import Util 
 
 data Node a = Node a
@@ -9,12 +10,38 @@ nequal :: Eq a => Node a -> Node a -> Node Bool
 nequal (Node a) (Node b) = Node $ a == b
 
 nread (Node a) = a
+-- (+), (*), abs, signum, fromInteger, (negate | (-))
+
+instance Num a => Num (Node a) where
+  (+) (Node a) (Node b) = Node $ a + b
+  (*) (Node a) (Node b) = Node $ a * b
+  abs (Node a) = Node $ abs a
+  signum (Node a) = Node $ signum a
+  fromInteger a = Node $ fromInteger a
+  negate (Node a) = Node $ negate a
+
+instance Num b => Num (a -> b) where
+      negate      = fmap negate
+      (+)         = liftA2 (+)
+      (*)         = liftA2 (*)
+      fromInteger = pure . fromInteger
+      abs         = fmap abs
+      signum      = fmap signum
 
 main = do
   msp $ Node True
   msp $ nread $ nequal (Node 10) (Node 20)
   --msp $ nread $ (Node 10) == (Node 20)
   msp "hi"
+  let foo :: Node Int
+      foo = 10
+  msp foo
+  msp $ foo == 14
+  msp $ foo == 10
+  msp $ (sin^2 + cos^2) 123.4
+  let voo :: (a -> Int)
+      voo = 12
+  msp "Ho"
 
 {-
 import Prelude hiding ((+), (==), Eq, Ord, Ordering, Show, Read)

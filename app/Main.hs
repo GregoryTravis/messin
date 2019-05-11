@@ -9,14 +9,19 @@ module Main where
 + backwards function
 + clean up
 + write takes a node instead of a raw value (necessary to not have to pass db everywhere)
-- string literal too
++ string literal too
+x NEq
 - nequal
+- norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - N
+- write a sort using ncompare
 - Rename to hide orig stuff and rename node stuff to look orig
+- How do features translate to node-lifted world?
 - How are errors
+- Read about lenses
 -}
 
 import Control.Applicative
@@ -58,6 +63,8 @@ _bi i = FNode (\db -> b db !! i) norev
 write :: FNode a -> FNode a -> DB -> DB
 write (FNode f b) v db = b (fnread v db) db
 
+nequal (FNode fa _) (FNode fb _) = FNode (\db -> (fa db) == (fb db)) norev
+
 nsp n = msp $ fnread n db
 
 db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
@@ -75,3 +82,5 @@ main = do
   msp $ write _a 122 db
   msp $ write _c "zxcv" db
   msp $ write _a 123 $ write _c "zxcv" db
+  nsp $ fnoo `nequal` 120
+  nsp $ fnoo `nequal` 121

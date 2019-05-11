@@ -24,20 +24,20 @@ norev = undefined
 --root db = FNode id rid
   --where rid db _ = db
 
-data FNode b = FNode (DB -> b) (b -> DB -> DB)
+data FNode a = FNode (DB -> a) (a -> DB -> DB)
 
-fshow :: Show b => FNode b -> DB -> String
-fshow (FNode fb rfb) db = show $ fb db
+fshow :: Show a => FNode a -> DB -> String
+fshow (FNode f b) db = show $ f db
 
-fnread (FNode fb rfb) db = fb db
+fnread (FNode f b) db = f db
 
 instance Num a => Num (FNode a) where
   (+) (FNode fa _) (FNode fb _) = FNode (\db -> fa db + fb db) norev
   (*) (FNode fa _) (FNode fb _ ) = FNode (\db -> fa db * fb db) norev
-  abs (FNode fa _) = FNode (\db -> abs $ fa db) norev
-  signum (FNode fa _) = FNode (\db -> signum $ fa db) norev
+  abs (FNode f _) = FNode (\db -> abs $ f db) norev
+  signum (FNode f _) = FNode (\db -> signum $ f db) norev
   fromInteger i = FNode (\db -> fromInteger i) norev
-  negate (FNode fa _) = FNode (\db -> negate $ fa db) norev
+  negate (FNode f _) = FNode (\db -> negate $ f db) norev
 
 _a :: FNode Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
@@ -46,7 +46,7 @@ _c = FNode (\db -> c db) (\v db -> db { c = v })
 _bi i = FNode (\db -> b db !! i) norev
 
 write :: FNode a -> a -> DB -> DB
-write (FNode f r) v db = r v db
+write (FNode f b) v db = b v db
 
 nsp n = msp $ fnread n db
 

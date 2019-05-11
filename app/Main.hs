@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 {-
@@ -6,7 +8,7 @@ module Main where
 + Make it a tuple
 + backwards function
 + clean up
-- write takes a node instead of a raw value (necessary to not have to pass db everywhere)
++ write takes a node instead of a raw value (necessary to not have to pass db everywhere)
 - string literal too
 - nequal
 - Node monad: collect writes, then apply them sequentially
@@ -18,6 +20,7 @@ module Main where
 -}
 
 import Control.Applicative
+import Data.String (IsString(..))
 import Util 
 
 data DB = DB { a :: Int, b :: [Int], c :: String }
@@ -43,6 +46,9 @@ instance Num a => Num (FNode a) where
   fromInteger i = FNode (\db -> fromInteger i) norev
   negate (FNode f _) = FNode (\db -> negate $ f db) norev
 
+instance IsString a => IsString (FNode a) where
+  fromString s = FNode (\db -> fromString s) norev
+
 _a :: FNode Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
 _b = FNode (\db -> b db) norev
@@ -66,5 +72,6 @@ main = do
   nsp _c
   nsp $ _bi 1
   msp $ write _a fnoo db
-  --msp $ write _c "zxcv" db
-  --msp $ write _a 120 $ write _c "zxcv" db
+  msp $ write _a 122 db
+  msp $ write _c "zxcv" db
+  msp $ write _a 123 $ write _c "zxcv" db

@@ -40,7 +40,7 @@ import Data.String (IsString(..))
 import Util 
 
 data DB = DB { a :: Int, b :: [Int], c :: String }
-  deriving (Read, Show)
+  deriving (Eq, Read, Show)
 
 norev = undefined
 
@@ -106,5 +106,6 @@ main = do
   msp $ write _a 122 db
   msp $ write _c "zxcv" db
   msp $ write _a 123 $ write _c "zxcv" db
+  massert $ (write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 3 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121

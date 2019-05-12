@@ -13,7 +13,7 @@ module Main where
 x NEq
 + nequal
 + generic, not DB
-- maybe a b instead of b a
++ maybe a b instead of b a
 - change db -> a
 + _bi should be a composition
 - _bi rev
@@ -58,21 +58,21 @@ ncompose (FNode fbc bbc) (FNode fab bab) = FNode fac bac
                     in na
 
 fshow :: Show b => FNode a b -> a -> String
-fshow (FNode f b) db = show $ f db
+fshow (FNode f b) a = show $ f a
 
 fnread :: FNode a b -> a -> b
-fnread (FNode f b) db = f db
+fnread (FNode f b) a = f a
 
 instance Num b => Num (FNode a b) where
-  (+) (FNode fa _) (FNode fb _) = FNode (\db -> fa db + fb db) norev
-  (*) (FNode fa _) (FNode fb _ ) = FNode (\db -> fa db * fb db) norev
-  abs (FNode f _) = FNode (\db -> abs $ f db) norev
-  signum (FNode f _) = FNode (\db -> signum $ f db) norev
-  fromInteger i = FNode (\db -> fromInteger i) norev
-  negate (FNode f _) = FNode (\db -> negate $ f db) norev
+  (+) (FNode fa _) (FNode fb _) = FNode (\a -> fa a + fb a) norev
+  (*) (FNode fa _) (FNode fb _ ) = FNode (\a -> fa a * fb a) norev
+  abs (FNode f _) = FNode (\a -> abs $ f a) norev
+  signum (FNode f _) = FNode (\a -> signum $ f a) norev
+  fromInteger i = FNode (\_ -> fromInteger i) norev
+  negate (FNode f _) = FNode (\a -> negate $ f a) norev
 
 instance IsString b => IsString (FNode a b) where
-  fromString s = FNode (\db -> fromString s) norev
+  fromString s = FNode (\_ -> fromString s) norev
 
 _a :: FNode DB Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
@@ -84,9 +84,9 @@ _bi i = FNode (\db -> b db !! i) norev
 _bi' i = ncompose (_i i) _b
 
 write :: FNode a b -> FNode a b -> a -> a
-write (FNode f b) v db = b (fnread v db) db
+write (FNode f b) v a = b (fnread v a) a
 
-nequal (FNode fa _) (FNode fb _) = FNode (\db -> (fa db) == (fb db)) norev
+nequal (FNode fa _) (FNode fb _) = FNode (\a -> (fa a) == (fb a)) norev
 
 nsp n = msp $ fnread n db
 

@@ -17,7 +17,9 @@ x NEq
 + change db -> a
 + _bi should be a composition
 + _bi rev
-- write a sort using ncompare
+- write map using nodes
+- two kinds of nodes?  db -> b and a -> b
+- write a sort using nodes
 - norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
@@ -96,6 +98,30 @@ nsp n = msp $ fnread n db
 
 db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
+mymap :: Eq a => (a -> b) -> [a] -> [b]
+mymap f as =
+  if as == []
+    then []
+    else (f (head as)) : (mymap f (tail as))
+
+-- nif
+-- neq
+-- nconst []
+-- napply? 1 args, 2 args
+-- nhead
+-- ntail
+
+nconst :: b -> FNode a b
+nconst x = FNode (\_ -> x) norev
+
+ntrue = nconst True
+nfalse = nconst False
+
+nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
+nif (FNode fc _) (FNode ft _) (FNode fe _) = FNode f norev
+  where f = \db -> if (fc db) then (ft db) else (fe db)
+        --b = norev
+
 main = do
   msp "hi"
   let fnoo :: FNode DB Int
@@ -114,3 +140,9 @@ main = do
   massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121
+  msp $ mymap (\x -> x * 2) [1, 2, 3]
+  --nsp $ nif (FNode True norev) (FNode "istrue" norev) (FNode "isfalse" norev)
+  nsp $ nif (nconst True) "istrue" "isfalse"
+  nsp $ nif (nconst False) "istrue" "isfalse"
+  nsp $ nif ntrue "istrue" "isfalse"
+  nsp $ nif nfalse "istrue" "isfalse"

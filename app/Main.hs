@@ -28,6 +28,7 @@ x NEq
 - How do features translate to node-lifted world?
 - How are errors
 - Read about lenses
+- Use lenses, applicative like god intended
 
 arrlookup_f :: Int -> [a] -> a
 arrlookup_b :: Int -> a -> [a] -> [a]

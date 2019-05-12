@@ -11,13 +11,15 @@ module Main where
 + write takes a node instead of a raw value (necessary to not have to pass db everywhere)
 + string literal too
 x NEq
-- nequal
++ nequal
+- _bi should be a composition
+- write a sort using ncompare
 - norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - N
-- write a sort using ncompare
+- currying?
 - Rename to hide orig stuff and rename node stuff to look orig
 - How do features translate to node-lifted world?
 - How are errors

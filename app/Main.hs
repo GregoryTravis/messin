@@ -18,6 +18,8 @@ x NEq
 + _bi should be a composition
 + _bi rev
 - write map using nodes
+- combinators for those basic elements
+- f db
 - two kinds of nodes?  db -> b and a -> b
 - write a sort using nodes
 - norev constructor (uni)
@@ -104,7 +106,6 @@ mymap f as =
     then []
     else (f (head as)) : (mymap f (tail as))
 
--- neq
 -- napply? 1 args, 2 args
 -- nhead
 -- ntail
@@ -123,6 +124,10 @@ nif (FNode fc _) (FNode ft _) (FNode fe _) = FNode f norev
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
 neq (FNode fa _) (FNode fb _) = FNode f norev
   where f = \db -> (fa db) == (fb db)
+
+napply :: FNode a (b -> c) -> FNode a b -> FNode a c
+napply (FNode ff _) (FNode fb _) = FNode f norev
+  where f = \db -> (ff db) (fb db)
 
 main = do
   msp "hi"
@@ -152,3 +157,4 @@ main = do
   nsp $ neq ntrue nfalse
   nsp $ neq 12 12
   nsp $ neq 12 13
+  nsp $ napply (nconst $ \x -> x*10) 13

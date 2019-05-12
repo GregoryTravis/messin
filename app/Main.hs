@@ -12,9 +12,9 @@ module Main where
 + string literal too
 x NEq
 + nequal
-- generic, not DB
++ generic, not DB
 - maybe a b instead of b a
-- _bi should be a composition
++ _bi should be a composition
 - _bi rev
 - write a sort using ncompare
 - norev constructor (uni)
@@ -45,10 +45,10 @@ norev = undefined
 --root db = FNode id rid
   --where rid db _ = db
 
-data FNode b a = FNode (b -> a) (a -> b -> b)
+data FNode a b = FNode (a -> b) (b -> a -> a)
 
-ncompose :: FNode c b -> FNode b a -> FNode c a
-ncompose (FNode fcb bcb) (FNode fba bba) = FNode fca bca
+ncompose :: FNode b a -> FNode c b -> FNode c a
+ncompose (FNode fba bba) (FNode fcb bcb) = FNode fca bca
   where -- fca :: c -> a
         fca c = fba (fcb c)
         -- fcb :: c -> b
@@ -85,7 +85,7 @@ _c = FNode (\db -> c db) (\v db -> db { c = v })
 _i :: Int -> FNode [a] a
 _i i = FNode (\arr -> arr !! i) norev
 _bi i = FNode (\db -> b db !! i) norev
-_bi' i = ncompose _b (_i i)
+_bi' i = ncompose (_i i) _b
 
 write :: FNode b a -> FNode b a -> b -> b
 write (FNode f b) v db = b (fnread v db) db

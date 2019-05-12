@@ -20,6 +20,7 @@ x NEq
 - write map using nodes
 - combinators for those basic elements
 - f db
+- fromList?
 - reversible map?  nif neq, how??
 - two kinds of nodes?  db -> b and a -> b
 - write a sort using nodes
@@ -42,6 +43,7 @@ arrlookup_b :: Int -> a -> [a] -> [a]
 
 import Control.Applicative
 import Data.String (IsString(..))
+import qualified Debug.Trace as TR
 import Util 
 
 data DB = DB { a :: Int, b :: [Int], c :: String }
@@ -101,15 +103,6 @@ nsp n = msp $ fnread n db
 
 db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
-mymap :: Eq a => (a -> b) -> [a] -> [b]
-mymap f as =
-  if as == []
-    then []
-    else (f (head as)) : (mymap f (tail as))
-
--- nhead
--- ntail
-
 nconst :: b -> FNode a b
 nconst x = FNode (\_ -> x) norev
 
@@ -118,7 +111,7 @@ nfalse = nconst False
 
 nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
 nif (FNode fc _) (FNode ft _) (FNode fe _) = FNode f norev
-  where f = \db -> if (fc db) then (ft db) else (fe db)
+  where f = \db -> if (fc db) then (eesp "then" (ft db)) else (eesp "else" (fe db))
         --b = norev
 
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
@@ -136,6 +129,43 @@ nhead (FNode fa _) = FNode f norev
 ntail :: FNode a [b] -> FNode a [b]
 ntail (FNode fa _) = FNode f norev
   where f = \db -> tail (fa db)
+{- bad safe tail
+  where f = \db -> let foo = (fa db)
+                    in if (null foo) -- foo == []
+                         then []
+                         else tail foo
+-}
+
+ncons :: FNode a b -> FNode a [b] -> FNode a [b]
+ncons (FNode fb _) (FNode fbs _) = FNode f norev
+  where f = \db -> (fb db) : (fbs db)
+
+{-`
+mymap :: Eq a => (a -> b) -> [a] -> [b]
+mymap f as =
+  if as == []
+    then []
+    else (f (head as)) : (mymap f (tail as))
+-}
+
+--nmap :: Eq a => FNode d (a -> b) -> FNode d [a] -> FNode d [b]
+nmap :: (Eq a, Show a) => FNode DB (a -> b) -> FNode DB [a] -> FNode DB [b]
+nmap f as | TR.trace (show ("nmap", fnread (neq as (nconst [])) db, fnread as db)) False = undefined
+nmap f as = nif (neq as (nconst []))
+                (eesp "reca" (nconst []))
+                (eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nmap f (ntail as))))
+                --(eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nmap f (nconst []))))
+                --(eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nconst [])))
+
+{-
+nmap :: Eq a => FNode d (a -> b) -> FNode d [a] -> FNode d [b]
+nmap f@(FNode ff _) as@(FNode fas _) = FNode f norev
+  where f = \db -> let as = fas db
+                    in if as == []
+                         then (const [])
+                          else let b = napply 
+                                in ncons b bs
+-}
 
 main = do
   msp "hi"
@@ -155,7 +185,7 @@ main = do
   massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121
-  msp $ mymap (\x -> x * 2) [1, 2, 3]
+  --msp $ mymap (\x -> x * 2) [1, 2, 3]
   --nsp $ nif (FNode True norev) (FNode "istrue" norev) (FNode "isfalse" norev)
   nsp $ nif (nconst True) "istrue" "isfalse"
   nsp $ nif (nconst False) "istrue" "isfalse"
@@ -169,3 +199,6 @@ main = do
   nsp $ nhead (nconst [20, 21, 22])
   nsp $ ntail (nconst [20, 21, 22])
   nsp $ nhead $ ntail (nconst [20, 21, 22])
+  nsp $ ncons 19 (nconst [20, 21, 22])
+  nsp $ ncons 19 $ ntail (nconst [20, 21, 22])
+  --nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])

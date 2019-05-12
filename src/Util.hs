@@ -28,7 +28,7 @@ import Data.Text (unpack)
 import Data.Text.Lazy (toStrict)
 import Data.Typeable (typeOf)
 import System.CPUTime
-import System.IO (appendFile)
+import System.IO (appendFile, hFlush, stdout)
 import System.IO.Unsafe
 import Text.Pretty.Simple (pShow, pShowNoColor)
 import Text.Printf
@@ -39,6 +39,7 @@ esp a = unsafePerformIO $ do
 
 eesp s a = unsafePerformIO $ do
   putStrLn $ show $ s
+  hFlush stdout
   return a
 
 fesp f a = unsafePerformIO $ do

@@ -12,7 +12,10 @@ module Main where
 + string literal too
 x NEq
 + nequal
+- generic, not DB
+- maybe a b instead of b a
 - _bi should be a composition
+- _bi rev
 - write a sort using ncompare
 - norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
@@ -24,6 +27,10 @@ x NEq
 - How do features translate to node-lifted world?
 - How are errors
 - Read about lenses
+
+arrlookup_f :: Int -> [a] -> a
+arrlookup_b :: Int -> a -> [a] -> [a]
+
 -}
 
 import Control.Applicative
@@ -38,14 +45,29 @@ norev = undefined
 --root db = FNode id rid
   --where rid db _ = db
 
-data FNode a = FNode (DB -> a) (a -> DB -> DB)
+data FNode b a = FNode (b -> a) (a -> b -> b)
 
-fshow :: Show a => FNode a -> DB -> String
+ncompose :: FNode c b -> FNode b a -> FNode c a
+ncompose (FNode fcb bcb) (FNode fba bba) = FNode fca bca
+  where -- fca :: c -> a
+        fca c = fba (fcb c)
+        -- fcb :: c -> b
+        -- fba :: b -> a
+        -- bcb :: b -> c -> c
+        -- bba :: a -> b -> b
+        -- bca :: a -> c -> c
+        bca a oc = let ob = (fcb oc)
+                       nb = bba a ob
+                       nc = bcb nb oc
+                    in nc
+
+fshow :: Show a => FNode b a -> b -> String
 fshow (FNode f b) db = show $ f db
 
+fnread :: FNode b a -> b -> a
 fnread (FNode f b) db = f db
 
-instance Num a => Num (FNode a) where
+instance Num a => Num (FNode b a) where
   (+) (FNode fa _) (FNode fb _) = FNode (\db -> fa db + fb db) norev
   (*) (FNode fa _) (FNode fb _ ) = FNode (\db -> fa db * fb db) norev
   abs (FNode f _) = FNode (\db -> abs $ f db) norev
@@ -53,16 +75,19 @@ instance Num a => Num (FNode a) where
   fromInteger i = FNode (\db -> fromInteger i) norev
   negate (FNode f _) = FNode (\db -> negate $ f db) norev
 
-instance IsString a => IsString (FNode a) where
+instance IsString a => IsString (FNode b a) where
   fromString s = FNode (\db -> fromString s) norev
 
-_a :: FNode Int
+_a :: FNode DB Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
 _b = FNode (\db -> b db) norev
 _c = FNode (\db -> c db) (\v db -> db { c = v })
+_i :: Int -> FNode [a] a
+_i i = FNode (\arr -> arr !! i) norev
 _bi i = FNode (\db -> b db !! i) norev
+_bi' i = ncompose _b (_i i)
 
-write :: FNode a -> FNode a -> DB -> DB
+write :: FNode b a -> FNode b a -> b -> b
 write (FNode f b) v db = b (fnread v db) db
 
 nequal (FNode fa _) (FNode fb _) = FNode (\db -> (fa db) == (fb db)) norev
@@ -73,13 +98,14 @@ db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
 main = do
   msp "hi"
-  let fnoo :: FNode Int
+  let fnoo :: FNode DB Int
       fnoo = 121
   nsp fnoo
   nsp _a
   nsp _b
   nsp _c
   nsp $ _bi 1
+  nsp $ _bi' 1
   msp $ write _a fnoo db
   msp $ write _a 122 db
   msp $ write _c "zxcv" db

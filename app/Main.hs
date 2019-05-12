@@ -14,6 +14,7 @@ x NEq
 + nequal
 + generic, not DB
 - maybe a b instead of b a
+- change db -> a
 + _bi should be a composition
 - _bi rev
 - write a sort using ncompare
@@ -55,13 +56,13 @@ ncompose (FNode fbc bbc) (FNode fab bab) = FNode fac bac
                        na = bab nb oa
                     in na
 
-fshow :: Show a => FNode b a -> b -> String
+fshow :: Show b => FNode a b -> a -> String
 fshow (FNode f b) db = show $ f db
 
-fnread :: FNode b a -> b -> a
+fnread :: FNode a b -> a -> b
 fnread (FNode f b) db = f db
 
-instance Num a => Num (FNode b a) where
+instance Num b => Num (FNode a b) where
   (+) (FNode fa _) (FNode fb _) = FNode (\db -> fa db + fb db) norev
   (*) (FNode fa _) (FNode fb _ ) = FNode (\db -> fa db * fb db) norev
   abs (FNode f _) = FNode (\db -> abs $ f db) norev
@@ -69,7 +70,7 @@ instance Num a => Num (FNode b a) where
   fromInteger i = FNode (\db -> fromInteger i) norev
   negate (FNode f _) = FNode (\db -> negate $ f db) norev
 
-instance IsString a => IsString (FNode b a) where
+instance IsString b => IsString (FNode a b) where
   fromString s = FNode (\db -> fromString s) norev
 
 _a :: FNode DB Int
@@ -81,7 +82,7 @@ _i i = FNode (\arr -> arr !! i) norev
 _bi i = FNode (\db -> b db !! i) norev
 _bi' i = ncompose (_i i) _b
 
-write :: FNode b a -> FNode b a -> b -> b
+write :: FNode a b -> FNode a b -> a -> a
 write (FNode f b) v db = b (fnread v db) db
 
 nequal (FNode fa _) (FNode fb _) = FNode (\db -> (fa db) == (fb db)) norev

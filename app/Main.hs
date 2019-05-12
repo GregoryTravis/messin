@@ -47,19 +47,13 @@ norev = undefined
 
 data FNode a b = FNode (a -> b) (b -> a -> a)
 
-ncompose :: FNode b a -> FNode c b -> FNode c a
-ncompose (FNode fba bba) (FNode fcb bcb) = FNode fca bca
-  where -- fca :: c -> a
-        fca c = fba (fcb c)
-        -- fcb :: c -> b
-        -- fba :: b -> a
-        -- bcb :: b -> c -> c
-        -- bba :: a -> b -> b
-        -- bca :: a -> c -> c
-        bca a oc = let ob = (fcb oc)
-                       nb = bba a ob
-                       nc = bcb nb oc
-                    in nc
+ncompose :: FNode b c -> FNode a b -> FNode a c
+ncompose (FNode fbc bbc) (FNode fab bab) = FNode fac bac
+  where fac a = fbc (fab a)
+        bac c oa = let ob = (fab oa)
+                       nb = bbc c ob
+                       na = bab nb oa
+                    in na
 
 fshow :: Show a => FNode b a -> b -> String
 fshow (FNode f b) db = show $ f db

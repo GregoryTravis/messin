@@ -113,7 +113,7 @@ nfalse = nconst False
 
 nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
 nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = FNode f norev
-  where f = \db -> if (fc db) then (eesp "then" (ft db)) else (eesp "else" (fe db))
+  where f = \db -> if (fc db) then (ft db) else (fe db)
 
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
 neq (FNode fa _) (FNode fb _) = FNode f norev

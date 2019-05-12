@@ -26,6 +26,7 @@ x NEq
 - write a sort using nodes
 - norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
+- Use infix instead of N/Node/FNode, like fclabels :->
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - N
@@ -44,6 +45,7 @@ arrlookup_b :: Int -> a -> [a] -> [a]
 import Control.Applicative
 import Data.String (IsString(..))
 import qualified Debug.Trace as TR
+import System.IO
 import Util 
 
 data DB = DB { a :: Int, b :: [Int], c :: String }
@@ -99,9 +101,9 @@ write (FNode f b) v a = b (fnread v a) a
 
 nequal (FNode fa _) (FNode fb _) = FNode (\a -> (fa a) == (fb a)) norev
 
-nsp n = msp $ fnread n db
+nsp n = msp $ fnread n thedb
 
-db = DB { a = 12, b = [2, 3, 4], c = "asdf" }
+thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
 nconst :: b -> FNode a b
 nconst x = FNode (\_ -> x) norev
@@ -110,9 +112,8 @@ ntrue = nconst True
 nfalse = nconst False
 
 nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
-nif (FNode fc _) (FNode ft _) (FNode fe _) = FNode f norev
+nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = FNode f norev
   where f = \db -> if (fc db) then (eesp "then" (ft db)) else (eesp "else" (fe db))
-        --b = norev
 
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
 neq (FNode fa _) (FNode fb _) = FNode f norev
@@ -150,24 +151,12 @@ mymap f as =
 
 --nmap :: Eq a => FNode d (a -> b) -> FNode d [a] -> FNode d [b]
 nmap :: (Eq a, Show a) => FNode DB (a -> b) -> FNode DB [a] -> FNode DB [b]
-nmap f as | TR.trace (show ("nmap", fnread (neq as (nconst [])) db, fnread as db)) False = undefined
 nmap f as = nif (neq as (nconst []))
-                (eesp "reca" (nconst []))
-                (eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nmap f (ntail as))))
-                --(eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nmap f (nconst []))))
-                --(eesp ("rec", fnread as db) (ncons (napply f (nhead as)) (nconst [])))
-
-{-
-nmap :: Eq a => FNode d (a -> b) -> FNode d [a] -> FNode d [b]
-nmap f@(FNode ff _) as@(FNode fas _) = FNode f norev
-  where f = \db -> let as = fas db
-                    in if as == []
-                         then (const [])
-                          else let b = napply 
-                                in ncons b bs
--}
+                (nconst [])
+                (ncons (napply f (nhead as)) (nmap f (ntail as)))
 
 main = do
+  hSetBuffering stdin NoBuffering
   msp "hi"
   let fnoo :: FNode DB Int
       fnoo = 121
@@ -177,12 +166,12 @@ main = do
   nsp _c
   nsp $ _bi 1
   nsp $ _bi' 1
-  msp $ write _a fnoo db
-  msp $ write _a 122 db
-  msp $ write _c "zxcv" db
-  msp $ write (_bi' 1) 333 db
-  msp $ write (_bi' 1) 334 $ write _a 123 $ write _c "zxcv" db
-  massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  msp $ write _a fnoo thedb
+  msp $ write _a 122 thedb
+  msp $ write _c "zxcv" thedb
+  msp $ write (_bi' 1) 333 thedb
+  msp $ write (_bi' 1) 334 $ write _a 123 $ write _c "zxcv" thedb
+  massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121
   --msp $ mymap (\x -> x * 2) [1, 2, 3]
@@ -201,4 +190,4 @@ main = do
   nsp $ nhead $ ntail (nconst [20, 21, 22])
   nsp $ ncons 19 (nconst [20, 21, 22])
   nsp $ ncons 19 $ ntail (nconst [20, 21, 22])
-  --nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])
+  nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])

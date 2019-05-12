@@ -104,9 +104,7 @@ mymap f as =
     then []
     else (f (head as)) : (mymap f (tail as))
 
--- nif
 -- neq
--- nconst []
 -- napply? 1 args, 2 args
 -- nhead
 -- ntail
@@ -121,6 +119,10 @@ nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
 nif (FNode fc _) (FNode ft _) (FNode fe _) = FNode f norev
   where f = \db -> if (fc db) then (ft db) else (fe db)
         --b = norev
+
+neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
+neq (FNode fa _) (FNode fb _) = FNode f norev
+  where f = \db -> (fa db) == (fb db)
 
 main = do
   msp "hi"
@@ -146,3 +148,7 @@ main = do
   nsp $ nif (nconst False) "istrue" "isfalse"
   nsp $ nif ntrue "istrue" "isfalse"
   nsp $ nif nfalse "istrue" "isfalse"
+  nsp $ neq ntrue ntrue
+  nsp $ neq ntrue nfalse
+  nsp $ neq 12 12
+  nsp $ neq 12 13

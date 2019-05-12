@@ -16,7 +16,7 @@ x NEq
 + maybe a b instead of b a
 + change db -> a
 + _bi should be a composition
-- _bi rev
++ _bi rev
 - write a sort using ncompare
 - norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially

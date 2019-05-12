@@ -14,7 +14,7 @@ x NEq
 + nequal
 + generic, not DB
 + maybe a b instead of b a
-- change db -> a
++ change db -> a
 + _bi should be a composition
 - _bi rev
 - write a sort using ncompare
@@ -76,11 +76,15 @@ instance IsString b => IsString (FNode a b) where
 
 _a :: FNode DB Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
-_b = FNode (\db -> b db) norev
+_b = FNode (\db -> b db) (\v db -> db { b = v })
 _c = FNode (\db -> c db) (\v db -> db { c = v })
 _i :: Int -> FNode [a] a
-_i i = FNode (\arr -> arr !! i) norev
-_bi i = FNode (\db -> b db !! i) norev
+_i i = FNode (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+upd :: [a] -> Int -> a -> [a]
+upd as i a
+  | i < 0 || i >= length as = error "upd out of range"
+  | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
+_bi i = FNode (\arr -> b arr !! i) norev
 _bi' i = ncompose (_i i) _b
 
 write :: FNode a b -> FNode a b -> a -> a
@@ -105,7 +109,8 @@ main = do
   msp $ write _a fnoo db
   msp $ write _a 122 db
   msp $ write _c "zxcv" db
-  msp $ write _a 123 $ write _c "zxcv" db
-  massert $ (write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 3 , 4 ] , c = "zxcv" }
+  msp $ write (_bi' 1) 333 db
+  msp $ write (_bi' 1) 334 $ write _a 123 $ write _c "zxcv" db
+  massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" db) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121

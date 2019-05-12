@@ -17,10 +17,10 @@ x NEq
 + change db -> a
 + _bi should be a composition
 + _bi rev
-- write map using nodes
++ write map using nodes
 - combinators for those basic elements
 - f db
-- fromList?
+- fromList? OverloadedLists extension + IsList
 - reversible map?  nif neq, how??
 - two kinds of nodes?  db -> b and a -> b
 - write a sort using nodes

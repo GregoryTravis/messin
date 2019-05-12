@@ -51,7 +51,7 @@ data FNode a b = FNode (a -> b) (b -> a -> a)
 
 ncompose :: FNode b c -> FNode a b -> FNode a c
 ncompose (FNode fbc bbc) (FNode fab bab) = FNode fac bac
-  where fac a = fbc (fab a)
+  where fac a = (fbc . fab) a
         bac c oa = let ob = (fab oa)
                        nb = bbc c ob
                        na = bab nb oa

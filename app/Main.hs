@@ -20,6 +20,7 @@ x NEq
 - write map using nodes
 - combinators for those basic elements
 - f db
+- reversible map?  nif neq, how??
 - two kinds of nodes?  db -> b and a -> b
 - write a sort using nodes
 - norev constructor (uni)
@@ -106,7 +107,6 @@ mymap f as =
     then []
     else (f (head as)) : (mymap f (tail as))
 
--- napply? 1 args, 2 args
 -- nhead
 -- ntail
 
@@ -128,6 +128,14 @@ neq (FNode fa _) (FNode fb _) = FNode f norev
 napply :: FNode a (b -> c) -> FNode a b -> FNode a c
 napply (FNode ff _) (FNode fb _) = FNode f norev
   where f = \db -> (ff db) (fb db)
+
+nhead :: FNode a [b] -> FNode a b
+nhead (FNode fa _) = FNode f norev
+  where f = \db -> head (fa db)
+
+ntail :: FNode a [b] -> FNode a [b]
+ntail (FNode fa _) = FNode f norev
+  where f = \db -> tail (fa db)
 
 main = do
   msp "hi"
@@ -158,3 +166,6 @@ main = do
   nsp $ neq 12 12
   nsp $ neq 12 13
   nsp $ napply (nconst $ \x -> x*10) 13
+  nsp $ nhead (nconst [20, 21, 22])
+  nsp $ ntail (nconst [20, 21, 22])
+  nsp $ nhead $ ntail (nconst [20, 21, 22])

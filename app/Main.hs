@@ -19,7 +19,7 @@ x NEq
 + _bi rev
 + write map using nodes
 + norev constructor (uni)
-- N / Node
++ N / Node
 - combinators for those basic elements
 + f db
 - fromList? OverloadedLists extension + IsList

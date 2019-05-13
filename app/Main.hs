@@ -113,25 +113,25 @@ nfalse = nconst False
 
 nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
 nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = FNode f norev
-  where f = \db -> if (fc db) then (ft db) else (fe db)
+  where f db = if (fc db) then (ft db) else (fe db)
 
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
 neq (FNode fa _) (FNode fb _) = FNode f norev
-  where f = \db -> (fa db) == (fb db)
+  where f db = (fa db) == (fb db)
 
 napply :: FNode a (b -> c) -> FNode a b -> FNode a c
 napply (FNode ff _) (FNode fb _) = FNode f norev
-  where f = \db -> (ff db) (fb db)
+  where f db = (ff db) (fb db)
 
 nhead :: FNode a [b] -> FNode a b
 nhead (FNode fa _) = FNode f norev
-  where f = \db -> head (fa db)
+  where f db = head (fa db)
 
 ntail :: FNode a [b] -> FNode a [b]
 ntail (FNode fa _) = FNode f norev
-  where f = \db -> tail (fa db)
+  where f db = tail (fa db)
 {- bad safe tail
-  where f = \db -> let foo = (fa db)
+  where f db = let foo = (fa db)
                     in if (null foo) -- foo == []
                          then []
                          else tail foo
@@ -139,7 +139,7 @@ ntail (FNode fa _) = FNode f norev
 
 ncons :: FNode a b -> FNode a [b] -> FNode a [b]
 ncons (FNode fb _) (FNode fbs _) = FNode f norev
-  where f = \db -> (fb db) : (fbs db)
+  where f db = (fb db) : (fbs db)
 
 {-`
 mymap :: Eq a => (a -> b) -> [a] -> [b]

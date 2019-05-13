@@ -81,6 +81,9 @@ liftN f (Node fa _) = uni $ \x -> f (fa x)
 liftN2 :: (b -> c -> d) -> Node a b -> Node a c -> Node a d
 liftN2 f (Node fa _) (Node fb _) = uni $ \x -> f (fa x) (fb x)
 
+--liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
+--liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (
+
 instance Num b => Num (Node a b) where
   (+) = liftN2 (+)
   (*) = liftN2 (*)
@@ -92,8 +95,9 @@ instance Num b => Num (Node a b) where
 instance IsString b => IsString (Node a b) where
   fromString s = uni $ const $ fromString s
 
+up_a v db = db { a = v }
 _a :: Node DB Int
-_a = Node (\db -> a db) (\v db -> db { a = v })
+_a = Node (\db -> a db) (\v db -> up_a v db)
 _b = Node (\db -> b db) (\v db -> db { b = v })
 _c = Node (\db -> c db) (\v db -> db { c = v })
 _i :: Int -> Node [a] a

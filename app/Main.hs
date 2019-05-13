@@ -21,6 +21,7 @@ x NEq
 + norev constructor (uni)
 + N / Node
 - lifters, obvs
+- reverse lifters -- ??
 - combinators for those basic elements
 + f db
 - fromList? OverloadedLists extension + IsList
@@ -74,16 +75,22 @@ fshow (Node f b) a = show $ f a
 fnread :: Node a b -> a -> b
 fnread (Node f b) a = f a
 
+liftN :: (b -> c) -> Node a b -> Node a c
+liftN f (Node fa _) = uni $ \x -> f (fa x)
+
+liftN2 :: (b -> c -> d) -> Node a b -> Node a c -> Node a d
+liftN2 f (Node fa _) (Node fb _) = uni $ \x -> f (fa x) (fb x)
+
 instance Num b => Num (Node a b) where
-  (+) (Node fa _) (Node fb _) = uni $ \a -> fa a + fb a
-  (*) (Node fa _) (Node fb _ ) = uni $ \a -> fa a * fb a
-  abs (Node f _) = uni $ \a -> abs $ f a
-  signum (Node f _) = uni $ \a -> signum $ f a
-  fromInteger i = uni $ \_ -> fromInteger i
-  negate (Node f _) = uni $ \a -> negate $ f a
+  (+) = liftN2 (+)
+  (*) = liftN2 (*)
+  abs = liftN abs
+  signum = liftN signum
+  fromInteger i = uni $ const $ fromInteger i
+  negate = liftN negate
 
 instance IsString b => IsString (Node a b) where
-  fromString s = uni $ \_ -> fromString s
+  fromString s = uni $ const $ fromString s
 
 _a :: Node DB Int
 _a = Node (\db -> a db) (\v db -> db { a = v })
@@ -162,7 +169,13 @@ main = do
   msp "hi"
   let fnoo :: Node DB Int
       fnoo = 121
+      nfnoo = (-121)
   nsp fnoo
+  nsp $ fnoo + 1000
+  nsp $ fnoo * 2
+  nsp $ abs nfnoo
+  nsp $ signum nfnoo
+  nsp $ negate nfnoo
   nsp _a
   nsp _b
   nsp _c

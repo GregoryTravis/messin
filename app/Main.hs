@@ -20,6 +20,7 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
+- lifters, obvs
 - combinators for those basic elements
 + f db
 - fromList? OverloadedLists extension + IsList

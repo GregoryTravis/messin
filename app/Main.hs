@@ -26,7 +26,7 @@ x NEq
 - reversible map?  nif neq, how??
 - two kinds of nodes?  db -> b and a -> b
 - Node monad: collect writes, then apply them sequentially
-- Use infix instead of N/Node/FNode, like fclabels :->
+- Use infix instead of N/Node/Node, like fclabels :->
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - currying?
@@ -52,44 +52,44 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 
 norev = undefined
 
-uni f = FNode f norev
+uni f = Node f norev
 
---root db = FNode id rid
+--root db = Node id rid
   --where rid db _ = db
 
-data FNode a b = FNode (a -> b) (b -> a -> a)
+data Node a b = Node (a -> b) (b -> a -> a)
 
-ncompose :: FNode b c -> FNode a b -> FNode a c
-ncompose (FNode fbc bbc) (FNode fab bab) = FNode fac bac
+ncompose :: Node b c -> Node a b -> Node a c
+ncompose (Node fbc bbc) (Node fab bab) = Node fac bac
   where fac a = (fbc . fab) a
         bac c oa = let ob = (fab oa)
                        nb = bbc c ob
                        na = bab nb oa
                     in na
 
-fshow :: Show b => FNode a b -> a -> String
-fshow (FNode f b) a = show $ f a
+fshow :: Show b => Node a b -> a -> String
+fshow (Node f b) a = show $ f a
 
-fnread :: FNode a b -> a -> b
-fnread (FNode f b) a = f a
+fnread :: Node a b -> a -> b
+fnread (Node f b) a = f a
 
-instance Num b => Num (FNode a b) where
-  (+) (FNode fa _) (FNode fb _) = uni $ \a -> fa a + fb a
-  (*) (FNode fa _) (FNode fb _ ) = uni $ \a -> fa a * fb a
-  abs (FNode f _) = uni $ \a -> abs $ f a
-  signum (FNode f _) = uni $ \a -> signum $ f a
+instance Num b => Num (Node a b) where
+  (+) (Node fa _) (Node fb _) = uni $ \a -> fa a + fb a
+  (*) (Node fa _) (Node fb _ ) = uni $ \a -> fa a * fb a
+  abs (Node f _) = uni $ \a -> abs $ f a
+  signum (Node f _) = uni $ \a -> signum $ f a
   fromInteger i = uni $ \_ -> fromInteger i
-  negate (FNode f _) = uni $ \a -> negate $ f a
+  negate (Node f _) = uni $ \a -> negate $ f a
 
-instance IsString b => IsString (FNode a b) where
+instance IsString b => IsString (Node a b) where
   fromString s = uni $ \_ -> fromString s
 
-_a :: FNode DB Int
-_a = FNode (\db -> a db) (\v db -> db { a = v })
-_b = FNode (\db -> b db) (\v db -> db { b = v })
-_c = FNode (\db -> c db) (\v db -> db { c = v })
-_i :: Int -> FNode [a] a
-_i i = FNode (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+_a :: Node DB Int
+_a = Node (\db -> a db) (\v db -> db { a = v })
+_b = Node (\db -> b db) (\v db -> db { b = v })
+_c = Node (\db -> c db) (\v db -> db { c = v })
+_i :: Int -> Node [a] a
+_i i = Node (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
@@ -97,39 +97,39 @@ upd as i a
 _bi i = uni $ \arr -> b arr !! i
 _bi' i = ncompose (_i i) _b
 
-write :: FNode a b -> FNode a b -> a -> a
-write (FNode f b) v a = b (fnread v a) a
+write :: Node a b -> Node a b -> a -> a
+write (Node f b) v a = b (fnread v a) a
 
-nequal (FNode fa _) (FNode fb _) = uni $ \a -> (fa a) == (fb a)
+nequal (Node fa _) (Node fb _) = uni $ \a -> (fa a) == (fb a)
 
 nsp n = msp $ fnread n thedb
 
 thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
-nconst :: b -> FNode a b
+nconst :: b -> Node a b
 nconst x = uni $ const x
 
 ntrue = nconst True
 nfalse = nconst False
 
-nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
-nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = uni f
+nif :: Node a Bool -> Node a b -> Node a b -> Node a b
+nif (Node fc _) ~(Node ft _) ~(Node fe _) = uni f
   where f db = if (fc db) then (ft db) else (fe db)
 
-neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
-neq (FNode fa _) (FNode fb _) = uni f
+neq :: Eq b => Node a b -> Node a b -> Node a Bool
+neq (Node fa _) (Node fb _) = uni f
   where f db = (fa db) == (fb db)
 
-napply :: FNode a (b -> c) -> FNode a b -> FNode a c
-napply (FNode ff _) (FNode fb _) = uni f
+napply :: Node a (b -> c) -> Node a b -> Node a c
+napply (Node ff _) (Node fb _) = uni f
   where f db = (ff db) (fb db)
 
-nhead :: FNode a [b] -> FNode a b
-nhead (FNode fa _) = uni f
+nhead :: Node a [b] -> Node a b
+nhead (Node fa _) = uni f
   where f db = head (fa db)
 
-ntail :: FNode a [b] -> FNode a [b]
-ntail (FNode fa _) = uni f
+ntail :: Node a [b] -> Node a [b]
+ntail (Node fa _) = uni f
   where f db = tail (fa db)
 {- bad safe tail
   where f db = let foo = (fa db)
@@ -138,8 +138,8 @@ ntail (FNode fa _) = uni f
                          else tail foo
 -}
 
-ncons :: FNode a b -> FNode a [b] -> FNode a [b]
-ncons (FNode fb _) (FNode fbs _) = uni f
+ncons :: Node a b -> Node a [b] -> Node a [b]
+ncons (Node fb _) (Node fbs _) = uni f
   where f db = (fb db) : (fbs db)
 
 {-`
@@ -150,8 +150,8 @@ mymap f as =
     else (f (head as)) : (mymap f (tail as))
 -}
 
---nmap :: Eq a => FNode d (a -> b) -> FNode d [a] -> FNode d [b]
-nmap :: (Eq a, Show a) => FNode DB (a -> b) -> FNode DB [a] -> FNode DB [b]
+--nmap :: Eq a => Node d (a -> b) -> Node d [a] -> Node d [b]
+nmap :: (Eq a, Show a) => Node DB (a -> b) -> Node DB [a] -> Node DB [b]
 nmap f as = nif (neq as (nconst []))
                 (nconst [])
                 (ncons (napply f (nhead as)) (nmap f (ntail as)))
@@ -159,7 +159,7 @@ nmap f as = nif (neq as (nconst []))
 main = do
   hSetBuffering stdin NoBuffering
   msp "hi"
-  let fnoo :: FNode DB Int
+  let fnoo :: Node DB Int
       fnoo = 121
   nsp fnoo
   nsp _a

@@ -18,18 +18,17 @@ x NEq
 + _bi should be a composition
 + _bi rev
 + write map using nodes
++ norev constructor (uni)
+- N / Node
 - combinators for those basic elements
-- f db
++ f db
 - fromList? OverloadedLists extension + IsList
 - reversible map?  nif neq, how??
 - two kinds of nodes?  db -> b and a -> b
-- write a sort using nodes
-- norev constructor (uni)
 - Node monad: collect writes, then apply them sequentially
 - Use infix instead of N/Node/FNode, like fclabels :->
 - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
-- N
 - currying?
 - Rename to hide orig stuff and rename node stuff to look orig
 - How do features translate to node-lifted world?
@@ -53,6 +52,8 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 
 norev = undefined
 
+uni f = FNode f norev
+
 --root db = FNode id rid
   --where rid db _ = db
 
@@ -73,15 +74,15 @@ fnread :: FNode a b -> a -> b
 fnread (FNode f b) a = f a
 
 instance Num b => Num (FNode a b) where
-  (+) (FNode fa _) (FNode fb _) = FNode (\a -> fa a + fb a) norev
-  (*) (FNode fa _) (FNode fb _ ) = FNode (\a -> fa a * fb a) norev
-  abs (FNode f _) = FNode (\a -> abs $ f a) norev
-  signum (FNode f _) = FNode (\a -> signum $ f a) norev
-  fromInteger i = FNode (\_ -> fromInteger i) norev
-  negate (FNode f _) = FNode (\a -> negate $ f a) norev
+  (+) (FNode fa _) (FNode fb _) = uni $ \a -> fa a + fb a
+  (*) (FNode fa _) (FNode fb _ ) = uni $ \a -> fa a * fb a
+  abs (FNode f _) = uni $ \a -> abs $ f a
+  signum (FNode f _) = uni $ \a -> signum $ f a
+  fromInteger i = uni $ \_ -> fromInteger i
+  negate (FNode f _) = uni $ \a -> negate $ f a
 
 instance IsString b => IsString (FNode a b) where
-  fromString s = FNode (\_ -> fromString s) norev
+  fromString s = uni $ \_ -> fromString s
 
 _a :: FNode DB Int
 _a = FNode (\db -> a db) (\v db -> db { a = v })
@@ -93,42 +94,42 @@ upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
   | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
-_bi i = FNode (\arr -> b arr !! i) norev
+_bi i = uni $ \arr -> b arr !! i
 _bi' i = ncompose (_i i) _b
 
 write :: FNode a b -> FNode a b -> a -> a
 write (FNode f b) v a = b (fnread v a) a
 
-nequal (FNode fa _) (FNode fb _) = FNode (\a -> (fa a) == (fb a)) norev
+nequal (FNode fa _) (FNode fb _) = uni $ \a -> (fa a) == (fb a)
 
 nsp n = msp $ fnread n thedb
 
 thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
 nconst :: b -> FNode a b
-nconst x = FNode (\_ -> x) norev
+nconst x = uni $ const x
 
 ntrue = nconst True
 nfalse = nconst False
 
 nif :: FNode a Bool -> FNode a b -> FNode a b -> FNode a b
-nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = FNode f norev
+nif (FNode fc _) ~(FNode ft _) ~(FNode fe _) = uni f
   where f db = if (fc db) then (ft db) else (fe db)
 
 neq :: Eq b => FNode a b -> FNode a b -> FNode a Bool
-neq (FNode fa _) (FNode fb _) = FNode f norev
+neq (FNode fa _) (FNode fb _) = uni f
   where f db = (fa db) == (fb db)
 
 napply :: FNode a (b -> c) -> FNode a b -> FNode a c
-napply (FNode ff _) (FNode fb _) = FNode f norev
+napply (FNode ff _) (FNode fb _) = uni f
   where f db = (ff db) (fb db)
 
 nhead :: FNode a [b] -> FNode a b
-nhead (FNode fa _) = FNode f norev
+nhead (FNode fa _) = uni f
   where f db = head (fa db)
 
 ntail :: FNode a [b] -> FNode a [b]
-ntail (FNode fa _) = FNode f norev
+ntail (FNode fa _) = uni f
   where f db = tail (fa db)
 {- bad safe tail
   where f db = let foo = (fa db)
@@ -138,7 +139,7 @@ ntail (FNode fa _) = FNode f norev
 -}
 
 ncons :: FNode a b -> FNode a [b] -> FNode a [b]
-ncons (FNode fb _) (FNode fbs _) = FNode f norev
+ncons (FNode fb _) (FNode fbs _) = uni f
   where f db = (fb db) : (fbs db)
 
 {-`
@@ -174,8 +175,6 @@ main = do
   massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   nsp $ fnoo `nequal` 120
   nsp $ fnoo `nequal` 121
-  --msp $ mymap (\x -> x * 2) [1, 2, 3]
-  --nsp $ nif (FNode True norev) (FNode "istrue" norev) (FNode "isfalse" norev)
   nsp $ nif (nconst True) "istrue" "isfalse"
   nsp $ nif (nconst False) "istrue" "isfalse"
   nsp $ nif ntrue "istrue" "isfalse"

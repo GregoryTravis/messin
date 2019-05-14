@@ -61,6 +61,8 @@ nid = Node id const
 uni f = Node f norev
 
 data Node a b = Node (a -> b) (b -> a -> a)
+for (Node f b) = f
+rev (Node f b) = b
 
 ncompose :: Node b c -> Node a b -> Node a c
 ncompose (Node fbc bbc) (Node fab bab) = Node fac bac
@@ -86,16 +88,10 @@ liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
 liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
 
 liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Node a b -> Node a c -> Node a d
-liftBN2 f b (Node fb bb) (Node fc bc) = Node fd bd
-  where -- fd :: a -> d
-        fd x = f (fb x) (fc x)
-        -- fb :: a -> b
-        -- bb :: b -> a -> a
-        -- fc :: a -> c
-        -- bc :: c -> a -> a
-        -- bd :: d -> a -> a
-        bd nv x = let (nb, nc) = b nv (fb x, fc x)
-                   in bc nc (bb nb x)
+liftBN2 f b bbb ccc = Node fd bd
+  where fd x = f (for bbb x) (for ccc x)
+        bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
+                   in rev ccc nc (rev bbb nb x)
 
 instance Num b => Num (Node a b) where
   (+) = liftN2 (+)
@@ -229,3 +225,4 @@ main = do
   nsp $ _a + (_bi 1)
   nsp $ _a `bidiPlus` (_bi 1)
   msp $ write (_a `bidiPlus` (_bi 1)) 19 thedb
+  massert $ (write (_a `bidiPlus` (_bi 1)) 19 thedb) == DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }

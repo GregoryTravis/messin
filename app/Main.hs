@@ -57,7 +57,8 @@ norev = undefined
 
 uni f = Node f norev
 
-root db = Node id rid
+-- db is unused
+root = Node id rid
   where rid db _ = db
 
 data Node a b = Node (a -> b) (b -> a -> a)
@@ -97,24 +98,27 @@ instance IsString b => IsString (Node a b) where
   fromString s = uni $ const $ fromString s
 
 up_a v db = db { a = v }
+up_b v db = db { b = v }
+up_c v db = db { c = v }
 _a :: Node DB Int
 --_a = Node (\db -> a db) (\v db -> up_a v db)
-_a = liftBN a up_a (root thedb)
-_b = Node (\db -> b db) (\v db -> db { b = v })
-_c = Node (\db -> c db) (\v db -> db { c = v })
+_a = liftBN a up_a root
+_b = liftBN b up_b root
+_c = liftBN c up_c root
+--_b = Node (\db -> b db) (\v db -> db { b = v })
+--_c = Node (\db -> c db) (\v db -> db { c = v })
 _i :: Int -> Node [a] a
-_i i = Node (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) root
+--_i i = Node (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
   | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
-_bi i = uni $ \arr -> b arr !! i
-_bi' i = ncompose (_i i) _b
+--_bi i = uni $ \arr -> b arr !! i
+_bi i = ncompose (_i i) _b
 
 write :: Node a b -> Node a b -> a -> a
 write (Node f b) v a = b (fnread v a) a
-
-nequal (Node fa _) (Node fb _) = uni $ \a -> (fa a) == (fb a)
 
 nsp n = msp $ fnread n thedb
 
@@ -131,30 +135,19 @@ nif (Node fc _) ~(Node ft _) ~(Node fe _) = uni f
   where f db = if (fc db) then (ft db) else (fe db)
 
 neq :: Eq b => Node a b -> Node a b -> Node a Bool
-neq (Node fa _) (Node fb _) = uni f
-  where f db = (fa db) == (fb db)
+neq = liftN2 (==)
 
 napply :: Node a (b -> c) -> Node a b -> Node a c
-napply (Node ff _) (Node fb _) = uni f
-  where f db = (ff db) (fb db)
+napply = liftN2 ($)
 
 nhead :: Node a [b] -> Node a b
-nhead (Node fa _) = uni f
-  where f db = head (fa db)
+nhead = liftN head
 
 ntail :: Node a [b] -> Node a [b]
-ntail (Node fa _) = uni f
-  where f db = tail (fa db)
-{- bad safe tail
-  where f db = let foo = (fa db)
-                    in if (null foo) -- foo == []
-                         then []
-                         else tail foo
--}
+ntail = liftN tail
 
 ncons :: Node a b -> Node a [b] -> Node a [b]
-ncons (Node fb _) (Node fbs _) = uni f
-  where f db = (fb db) : (fbs db)
+ncons = liftN2 (:)
 
 {-`
 mymap :: Eq a => (a -> b) -> [a] -> [b]
@@ -186,15 +179,15 @@ main = do
   nsp _b
   nsp _c
   nsp $ _bi 1
-  nsp $ _bi' 1
+  nsp $ _bi 1
   msp $ write _a fnoo thedb
   msp $ write _a 122 thedb
   msp $ write _c "zxcv" thedb
-  msp $ write (_bi' 1) 333 thedb
-  msp $ write (_bi' 1) 334 $ write _a 123 $ write _c "zxcv" thedb
-  massert $ (write (_bi' 1) 335 $ write _a 123 $ write _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
-  nsp $ fnoo `nequal` 120
-  nsp $ fnoo `nequal` 121
+  msp $ write (_bi 1) 333 thedb
+  msp $ write (_bi 1) 334 $ write _a 123 $ write _c "zxcv" thedb
+  massert $ (write (_bi 1) 335 $ write _a 123 $ write _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  nsp $ fnoo `neq` 120
+  nsp $ fnoo `neq` 121
   nsp $ nif (nconst True) "istrue" "isfalse"
   nsp $ nif (nconst False) "istrue" "isfalse"
   nsp $ nif ntrue "istrue" "isfalse"

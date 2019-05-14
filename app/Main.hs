@@ -21,8 +21,8 @@ x NEq
 + norev constructor (uni)
 + N / Node
 - shouldn't need nid
-- lifters, obvs
-- reverse lifters -- ??
++ lifters, obvs
++ reverse lifters
 - combinators for those basic elements
 + f db
 - fromList? OverloadedLists extension + IsList

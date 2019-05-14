@@ -59,6 +59,7 @@ norev = undefined
 nid = Node id const
 
 uni f = Node f norev
+toUni (Node f b) = Node f norev
 
 data Node a b = Node (a -> b) (b -> a -> a)
 for (Node f b) = f
@@ -79,10 +80,10 @@ fnread :: Node a b -> a -> b
 fnread (Node f b) a = f a
 
 liftN :: (b -> c) -> Node a b -> Node a c
-liftN f (Node fa _) = uni $ \x -> f (fa x)
+liftN f n = toUni $ liftBN f undefined n
 
 liftN2 :: (b -> c -> d) -> Node a b -> Node a c -> Node a d
-liftN2 f (Node fa _) (Node fb _) = uni $ \x -> f (fa x) (fb x)
+liftN2 f n0 n1 = toUni $ liftBN2 f undefined n0 n1
 
 liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
 liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))

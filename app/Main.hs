@@ -20,7 +20,7 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
-- root should be theroot
+- shouldn't need nid
 - lifters, obvs
 - reverse lifters -- ??
 - combinators for those basic elements
@@ -55,11 +55,10 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 
 norev = undefined
 
-uni f = Node f norev
+-- This is just weird
+nid = Node id const
 
--- db is unused
-root = Node id rid
-  where rid db _ = db
+uni f = Node f norev
 
 data Node a b = Node (a -> b) (b -> a -> a)
 
@@ -85,12 +84,6 @@ liftN2 f (Node fa _) (Node fb _) = uni $ \x -> f (fa x) (fb x)
 
 liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
 liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
-
--- Can you do this?
-q = let a :: Int
-        b :: Int
-        (a, b) = (2, 3)
-      in a + b
 
 liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Node a b -> Node a c -> Node a d
 liftBN2 f b (Node fb bb) (Node fc bc) = Node fd bd
@@ -130,14 +123,14 @@ up_b v db = db { b = v }
 up_c v db = db { c = v }
 _a :: Node DB Int
 --_a = Node (\db -> a db) (\v db -> up_a v db)
-_a = liftBN a up_a root
+_a = liftBN a up_a nid
 _b :: Node DB [Int]
-_b = liftBN b up_b root
-_c = liftBN c up_c root
+_b = liftBN b up_b nid
+_c = liftBN c up_c nid
 --_b = Node (\db -> b db) (\v db -> db { b = v })
 --_c = Node (\db -> c db) (\v db -> db { c = v })
 _i :: Int -> Node [a] a
-_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) root
+_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) nid
 --_i i = Node (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
 upd :: [a] -> Int -> a -> [a]
 upd as i a

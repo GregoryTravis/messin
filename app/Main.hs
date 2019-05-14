@@ -86,6 +86,24 @@ liftN2 f (Node fa _) (Node fb _) = uni $ \x -> f (fa x) (fb x)
 liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
 liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
 
+-- Can you do this?
+q = let a :: Int
+        b :: Int
+        (a, b) = (2, 3)
+      in a + b
+
+liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Node a b -> Node a c -> Node a d
+liftBN2 f b (Node fb bb) (Node fc bc) = Node fd bd
+  where -- fd :: a -> d
+        fd x = f (fb x) (fc x)
+        -- fb :: a -> b
+        -- bb :: b -> a -> a
+        -- fc :: a -> c
+        -- bc :: c -> a -> a
+        -- bd :: d -> a -> a
+        bd nv x = let (nb, nc) = b nv (fb x, fc x)
+                   in bc nc (bb nb x)
+
 instance Num b => Num (Node a b) where
   (+) = liftN2 (+)
   (*) = liftN2 (*)
@@ -93,6 +111,16 @@ instance Num b => Num (Node a b) where
   signum = liftN signum
   fromInteger i = uni $ const $ fromInteger i
   negate = liftN negate
+
+-- Bidirectional additition: in the reverse direction, spread the change
+-- between the two inputs.  So forward 1 + 1 = 2 ; reverse 4 = 2 + 2
+bidiPlus :: Node a Int -> Node a Int -> Node a Int
+bidiPlus = liftBN2 (\x y -> x + y) rev
+  where rev nsum (ox, oy) = (nx, ny)
+          where osum = ox + oy
+                delta = nsum - osum
+                nx = ox + (delta `div` 2)
+                ny = nsum - nx
 
 instance IsString b => IsString (Node a b) where
   fromString s = uni $ const $ fromString s
@@ -103,6 +131,7 @@ up_c v db = db { c = v }
 _a :: Node DB Int
 --_a = Node (\db -> a db) (\v db -> up_a v db)
 _a = liftBN a up_a root
+_b :: Node DB [Int]
 _b = liftBN b up_b root
 _c = liftBN c up_c root
 --_b = Node (\db -> b db) (\v db -> db { b = v })
@@ -115,6 +144,7 @@ upd as i a
   | i < 0 || i >= length as = error "upd out of range"
   | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
 --_bi i = uni $ \arr -> b arr !! i
+_bi :: Int -> Node DB Int
 _bi i = ncompose (_i i) _b
 
 write :: Node a b -> Node a b -> a -> a
@@ -203,3 +233,6 @@ main = do
   nsp $ ncons 19 (nconst [20, 21, 22])
   nsp $ ncons 19 $ ntail (nconst [20, 21, 22])
   nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])
+  nsp $ _a + (_bi 1)
+  nsp $ _a `bidiPlus` (_bi 1)
+  msp $ write (_a `bidiPlus` (_bi 1)) 19 thedb

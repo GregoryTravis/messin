@@ -66,12 +66,9 @@ for (Node f b) = f
 rev (Node f b) = b
 
 ncompose :: Node b c -> Node a b -> Node a c
-ncompose (Node fbc bbc) (Node fab bab) = Node fac bac
-  where fac a = (fbc . fab) a
-        bac c oa = let ob = (fab oa)
-                       nb = bbc c ob
-                       na = bab nb oa
-                    in na
+ncompose f@(Node fbc bbc) g@(Node fab bab) = Node fac bac
+  where fac a = (for f . for g) a
+        bac c oa = rev g (rev f c (for g oa)) oa
 
 fshow :: Show b => Node a b -> a -> String
 fshow (Node f b) a = show $ f a

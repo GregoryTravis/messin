@@ -20,7 +20,10 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
+- mmap
+- mmap -> nodemap
 - shouldn't need nid
+  - Is there a way for a node to only have the b type?
 + lifters, obvs
 + reverse lifters
 - combinators for those basic elements
@@ -181,6 +184,13 @@ nmap f as = nif (neq as (nconst []))
                 (ncons (napply f (nhead as)) (nmap f (ntail as)))
 
 nmap2 = liftN2 map
+
+{-
+mmap :: Node b c -> Node a [b] -> Node a [c]
+mmap f = liftBN for rev
+  where for = map (for f)
+        rev xs oxs = map (\(x, ox) -> rev f x) $ zip xs oxs
+-}
 
 main = do
   hSetBuffering stdin NoBuffering

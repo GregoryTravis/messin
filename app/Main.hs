@@ -183,6 +183,8 @@ nmap f as = nif (neq as (nconst []))
                 (nconst [])
                 (ncons (napply f (nhead as)) (nmap f (ntail as)))
 
+nmap2 = liftN2 map
+
 main = do
   hSetBuffering stdin NoBuffering
   msp "hi"
@@ -223,6 +225,7 @@ main = do
   nsp $ ncons 19 (nconst [20, 21, 22])
   nsp $ ncons 19 $ ntail (nconst [20, 21, 22])
   nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])
+  nsp $ nmap2 (nconst (\x -> x * 2)) (nconst [1, 2, 3])
   nsp $ _a + (_bi 1)
   nsp $ _a `bidiPlus` (_bi 1)
   msp $ write (_a `bidiPlus` (_bi 1)) 19 thedb

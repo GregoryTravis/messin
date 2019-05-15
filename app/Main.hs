@@ -115,6 +115,11 @@ liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
 liftBV f r a = napply' (Func f r) a
+liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c
+liftBV2 f b bbb ccc = Val (Func fd bd)
+  where fd x = f (vfor bbb x) (vfor ccc x)
+        bd nv x = let (nb, nc) = b nv (vfor bbb x, vfor ccc x)
+                   in vrev ccc nc (vrev bbb nb x)
 
 vsp v = msp $ vread v thedb
 
@@ -124,10 +129,20 @@ vwrite (Val func) (Val v) = write func v
 -- bidi inc
 binc :: Val Int -> Val Int
 binc = liftBV (+1) (\i _ -> i-1)
+--
+-- Bidirectional additition: in the reverse direction, spread the change
+-- between the two inputs.  So forward 1 + 1 = 2 ; reverse 4 = 2 + 2
+bidiPlus :: Val Int -> Val Int -> Val Int
+bidiPlus = liftBV2 (\x y -> x + y) rev
+  where rev nsum (ox, oy) = (nx, ny)
+          where osum = ox + oy
+                delta = nsum - osum
+                nx = ox + (delta `div` 2)
+                ny = nsum - nx
 
 main = do
   msp "hi"
-  --msp $ vread theroot thedb
+  msp $ vread theroot thedb
   --vsp theroot
   vsp $ toVal _a
   vsp $ (liftV (+ 10)) $ toVal _a
@@ -135,7 +150,12 @@ main = do
   msp $ vwrite (toVal _a) (vconst 120) thedb
   massert $ (vwrite (toVal _a) (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
   vsp $ binc $ toVal _a
-  msp $ vwrite (binc $ toVal _a) (vconst 130) thedb
+  massert $ (vwrite (binc $ toVal _a) (vconst 130) thedb) ==
+    DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+  vsp $ (toVal _a) `bidiPlus` (toVal (_bi 1))
+  msp $ vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb
+  massert $ (vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb) ==
+    DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

@@ -21,12 +21,14 @@ x NEq
 + norev constructor (uni)
 + N / Node
 - val, func, sfunc -- builders
+- if uni always has toVal before it?
 - And <--, <--- builders
 - Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
   - want to make sure you can't pass a val as func so maybe just different types with a converter
   - which is just (id, id)
   - Func should actually be (-->) because we need to use these things in actual code
   - Which also suggests F and V; but really a preprocessor will be necessary I guess
+- bidi head, tail, cons
 - Can you do TMI.., as in TMI.(.)
 - mmap
 - mmap -> nodemap
@@ -151,6 +153,43 @@ instance Num a => Num (Val a) where
 instance IsString a => IsString (Val a) where
   fromString s = toVal $ uni $ const $ fromString s
 
+ntrue = vconst True
+nfalse = vconst False
+
+nif :: Val Bool -> Val b -> Val b -> Val b
+nif c ~t ~e = toVal $ uni f
+  where f db = if (vfor c db) then (vfor t db) else (vfor e db)
+
+neq :: Eq b => Val b -> Val b -> Val Bool
+neq = liftV2 (==)
+
+--napply :: Val (b -> c) -> Val b -> Val c
+--napply = liftV2 ($)
+
+nhead :: Val [b] -> Val b
+nhead = liftV head
+
+ntail :: Val [b] -> Val [b]
+ntail = liftV tail
+
+ncons :: Val b -> Val [b] -> Val [b]
+ncons = liftV2 (:)
+
+{-
+mymap :: Eq a => (a -> b) -> [a] -> [b]
+mymap f as =
+  if as == []
+    then []
+    else (f (head as)) : (mymap f (tail as))
+-}
+
+nmap :: (Eq a, Show a) => Func a b -> Val [a] -> Val [b]
+nmap f as = nif (neq as (vconst []))
+                (vconst [])
+                (ncons (napply' f (nhead as)) (nmap f (ntail as)))
+
+nmap2 = liftV2 map
+
 main = do
   msp "hi"
   msp $ vread theroot thedb
@@ -172,6 +211,10 @@ main = do
   vsp floo
   msp $ vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 126 $ vwrite (toVal _c) "zxcv" thedb
   massert $ (vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 123 $ vwrite (toVal _c) "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
+  vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
+  massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
+  massert $ (vread (nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

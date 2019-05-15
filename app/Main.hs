@@ -109,10 +109,10 @@ vread (Val func) = fnread func
 
 theroot = Val nid
 
-liftF :: (a -> b) -> Val a -> Val b
-liftF f a = napply' (uni f) a
-liftF2 :: (a -> b -> c) -> Val a -> Val b -> Val c
-liftF2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
+liftV :: (a -> b) -> Val a -> Val b
+liftV f a = napply' (uni f) a
+liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
+liftV2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
 --liftBF :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
 --liftBF f r a = napply' (Func f r) a
 
@@ -121,18 +121,13 @@ vsp v = msp $ vread v thedb
 vwrite :: Val a -> Val a -> DB -> DB
 vwrite (Val func) (Val v) = write func v
 
-{-
-write :: Func a b -> Func a b -> a -> a
-write (Func f b) v a = b (fnread v a) a
--}
-
 main = do
   msp "hi"
   --msp $ vread theroot thedb
   --vsp theroot
   vsp $ toVal _a
-  vsp $ (liftF (+ 10)) $ toVal _a
-  vsp $ (liftF2 (+)) (toVal _a) (toVal (_bi 1))
+  vsp $ (liftV (+ 10)) $ toVal _a
+  vsp $ (liftV2 (+)) (toVal _a) (toVal (_bi 1))
   msp $ vwrite (toVal _a) (vconst 120) thedb
   massert $ (vwrite (toVal _a) (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
 

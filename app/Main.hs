@@ -140,6 +140,14 @@ bidiPlus = liftBV2 (\x y -> x + y) rev
                 nx = ox + (delta `div` 2)
                 ny = nsum - nx
 
+instance Num a => Num (Val a) where
+  (+) = liftV2 (+)
+  (*) = liftV2 (*)
+  abs = liftV abs
+  signum = liftV signum
+  fromInteger i = toVal $ uni $ const $ fromInteger i
+  negate = liftV negate
+
 main = do
   msp "hi"
   msp $ vread theroot thedb
@@ -156,6 +164,9 @@ main = do
   msp $ vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb
   massert $ (vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb) ==
     DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
+  let floo :: Val Int
+      floo = 123
+  vsp floo
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

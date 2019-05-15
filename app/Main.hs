@@ -65,42 +65,42 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 norev = undefined
 
 -- This is just weird
-nid = Node id const
+nid = Func id const
 
-uni f = Node f norev
-toUni (Node f b) = Node f norev
+uni f = Func f norev
+toUni (Func f b) = Func f norev
 
-data Node a b = Node (a -> b) (b -> a -> a)
-for (Node f b) = f
-rev (Node f b) = b
+data Func a b = Func (a -> b) (b -> a -> a)
+for (Func f b) = f
+rev (Func f b) = b
 
-ncompose :: Node b c -> Node a b -> Node a c
-ncompose f@(Node fbc bbc) g@(Node fab bab) = Node fac bac
+ncompose :: Func b c -> Func a b -> Func a c
+ncompose f@(Func fbc bbc) g@(Func fab bab) = Func fac bac
   where fac a = (for f . for g) a
         bac c oa = rev g (rev f c (for g oa)) oa
 
-fshow :: Show b => Node a b -> a -> String
-fshow (Node f b) a = show $ f a
+fshow :: Show b => Func a b -> a -> String
+fshow (Func f b) a = show $ f a
 
-fnread :: Node a b -> a -> b
-fnread (Node f b) a = f a
+fnread :: Func a b -> a -> b
+fnread (Func f b) a = f a
 
-liftN :: (b -> c) -> Node a b -> Node a c
+liftN :: (b -> c) -> Func a b -> Func a c
 liftN f n = toUni $ liftBN f undefined n
 
-liftN2 :: (b -> c -> d) -> Node a b -> Node a c -> Node a d
+liftN2 :: (b -> c -> d) -> Func a b -> Func a c -> Func a d
 liftN2 f n0 n1 = toUni $ liftBN2 f undefined n0 n1
 
-liftBN :: (b -> c) -> (c -> b -> b) -> Node a b -> Node a c
-liftBN f b (Node fa ba) = Node (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
+liftBN :: (b -> c) -> (c -> b -> b) -> Func a b -> Func a c
+liftBN f b (Func fa ba) = Func (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
 
-liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Node a b -> Node a c -> Node a d
-liftBN2 f b bbb ccc = Node fd bd
+liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Func a b -> Func a c -> Func a d
+liftBN2 f b bbb ccc = Func fd bd
   where fd x = f (for bbb x) (for ccc x)
         bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
                    in rev ccc nc (rev bbb nb x)
 
-instance Num b => Num (Node a b) where
+instance Num b => Num (Func a b) where
   (+) = liftN2 (+)
   (*) = liftN2 (*)
   abs = liftN abs
@@ -110,7 +110,7 @@ instance Num b => Num (Node a b) where
 
 -- Bidirectional additition: in the reverse direction, spread the change
 -- between the two inputs.  So forward 1 + 1 = 2 ; reverse 4 = 2 + 2
-bidiPlus :: Node a Int -> Node a Int -> Node a Int
+bidiPlus :: Func a Int -> Func a Int -> Func a Int
 bidiPlus = liftBN2 (\x y -> x + y) rev
   where rev nsum (ox, oy) = (nx, ny)
           where osum = ox + oy
@@ -118,61 +118,61 @@ bidiPlus = liftBN2 (\x y -> x + y) rev
                 nx = ox + (delta `div` 2)
                 ny = nsum - nx
 
-instance IsString b => IsString (Node a b) where
+instance IsString b => IsString (Func a b) where
   fromString s = uni $ const $ fromString s
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }
 up_c v db = db { c = v }
-_a :: Node DB Int
---_a = Node (\db -> a db) (\v db -> up_a v db)
+_a :: Func DB Int
+--_a = Func (\db -> a db) (\v db -> up_a v db)
 _a = liftBN a up_a nid
-_b :: Node DB [Int]
+_b :: Func DB [Int]
 _b = liftBN b up_b nid
 _c = liftBN c up_c nid
---_b = Node (\db -> b db) (\v db -> db { b = v })
---_c = Node (\db -> c db) (\v db -> db { c = v })
-_i :: Int -> Node [a] a
+--_b = Func (\db -> b db) (\v db -> db { b = v })
+--_c = Func (\db -> c db) (\v db -> db { c = v })
+_i :: Int -> Func [a] a
 _i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) nid
---_i i = Node (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+--_i i = Func (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
   | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
 --_bi i = uni $ \arr -> b arr !! i
-_bi :: Int -> Node DB Int
+_bi :: Int -> Func DB Int
 _bi i = ncompose (_i i) _b
 
-write :: Node a b -> Node a b -> a -> a
-write (Node f b) v a = b (fnread v a) a
+write :: Func a b -> Func a b -> a -> a
+write (Func f b) v a = b (fnread v a) a
 
 nsp n = msp $ fnread n thedb
 
 thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
-nconst :: b -> Node a b
+nconst :: b -> Func a b
 nconst x = uni $ const x
 
 ntrue = nconst True
 nfalse = nconst False
 
-nif :: Node a Bool -> Node a b -> Node a b -> Node a b
-nif (Node fc _) ~(Node ft _) ~(Node fe _) = uni f
+nif :: Func a Bool -> Func a b -> Func a b -> Func a b
+nif (Func fc _) ~(Func ft _) ~(Func fe _) = uni f
   where f db = if (fc db) then (ft db) else (fe db)
 
-neq :: Eq b => Node a b -> Node a b -> Node a Bool
+neq :: Eq b => Func a b -> Func a b -> Func a Bool
 neq = liftN2 (==)
 
-napply :: Node a (b -> c) -> Node a b -> Node a c
+napply :: Func a (b -> c) -> Func a b -> Func a c
 napply = liftN2 ($)
 
-nhead :: Node a [b] -> Node a b
+nhead :: Func a [b] -> Func a b
 nhead = liftN head
 
-ntail :: Node a [b] -> Node a [b]
+ntail :: Func a [b] -> Func a [b]
 ntail = liftN tail
 
-ncons :: Node a b -> Node a [b] -> Node a [b]
+ncons :: Func a b -> Func a [b] -> Func a [b]
 ncons = liftN2 (:)
 
 {-`
@@ -183,8 +183,8 @@ mymap f as =
     else (f (head as)) : (mymap f (tail as))
 -}
 
---nmap :: Eq a => Node d (a -> b) -> Node d [a] -> Node d [b]
-nmap :: (Eq a, Show a) => Node DB (a -> b) -> Node DB [a] -> Node DB [b]
+--nmap :: Eq a => Func d (a -> b) -> Func d [a] -> Func d [b]
+nmap :: (Eq a, Show a) => Func DB (a -> b) -> Func DB [a] -> Func DB [b]
 nmap f as = nif (neq as (nconst []))
                 (nconst [])
                 (ncons (napply f (nhead as)) (nmap f (ntail as)))
@@ -192,7 +192,7 @@ nmap f as = nif (neq as (nconst []))
 nmap2 = liftN2 map
 
 {-
-mmap :: Node b c -> Node a [b] -> Node a [c]
+mmap :: Func b c -> Func a [b] -> Func a [c]
 mmap f = liftBN for rev
   where for = map (for f)
         rev xs oxs = map (\(x, ox) -> rev f x) $ zip xs oxs
@@ -201,7 +201,7 @@ mmap f = liftBN for rev
 main = do
   hSetBuffering stdin NoBuffering
   msp "hi"
-  let fnoo :: Node DB Int
+  let fnoo :: Func DB Int
       fnoo = 121
       nfnoo = (-121)
   nsp fnoo

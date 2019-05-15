@@ -207,7 +207,7 @@ main = do
   msp "mult"
   msp $ vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb
   massert $ (vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb) ==
-    DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+    DB { a = 126 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]

@@ -21,6 +21,7 @@ x NEq
 + norev constructor (uni)
 + N / Node
 - val, func, sfunc -- builders
+- And <--, <--- builders
 - Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
   - want to make sure you can't pass a val as func so maybe just different types with a converter
   - which is just (id, id)
@@ -60,6 +61,11 @@ import qualified Debug.Trace as TR
 import System.IO
 import Util 
 
+data DB = DB { a :: Int, b :: [Int], c :: String }
+  deriving (Eq, Read, Show)
+
+thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
+
 data Func a b = Func (a -> b) (b -> a -> a)
 newtype Val b = Val (Func DB b)
 
@@ -67,6 +73,8 @@ toVal :: Func DB b -> Val b
 toVal func = Val func
 
 vconst v = Val (nconst v)
+nconst :: b -> Func a b
+nconst x = uni $ const x
 
 napply' :: Func a b -> Val a -> Val b
 napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
@@ -105,8 +113,8 @@ liftF :: (a -> b) -> Val a -> Val b
 liftF f a = napply' (uni f) a
 liftF2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftF2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
--- liftF twice?
--- ? liftF2 f a b = uni  f
+--liftBF :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
+--liftBF f r a = napply' (Func f r) a
 
 vsp v = msp $ vread v thedb
 
@@ -121,11 +129,37 @@ write (Func f b) v a = b (fnread v a) a
 main = do
   msp "hi"
   --msp $ vread theroot thedb
-  vsp theroot
+  --vsp theroot
   vsp $ toVal _a
   vsp $ (liftF (+ 10)) $ toVal _a
   vsp $ (liftF2 (+)) (toVal _a) (toVal (_bi 1))
   msp $ vwrite (toVal _a) (vconst 120) thedb
+  massert $ (vwrite (toVal _a) (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+
+up_a v db = db { a = v }
+up_b v db = db { b = v }
+up_c v db = db { c = v }
+_a :: Func DB Int
+--_a = Func (\db -> a db) (\v db -> up_a v db)
+_a = liftBN a up_a nid
+_b :: Func DB [Int]
+_b = liftBN b up_b nid
+_c = liftBN c up_c nid
+--_b = Func (\db -> b db) (\v db -> db { b = v })
+--_c = Func (\db -> c db) (\v db -> db { c = v })
+_i :: Int -> Func [a] a
+_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) nid
+--_i i = Func (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+upd :: [a] -> Int -> a -> [a]
+upd as i a
+  | i < 0 || i >= length as = error "upd out of range"
+  | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
+--_bi i = uni $ \arr -> b arr !! i
+_bi :: Int -> Func DB Int
+_bi i = ncompose (_i i) _b
+
+write :: Func a b -> Func a b -> a -> a
+write (Func f b) v a = b (fnread v a) a
 
 liftN :: (b -> c) -> Func a b -> Func a c
 liftN f n = toUni $ liftBN f undefined n
@@ -142,6 +176,7 @@ liftBN2 f b bbb ccc = Func fd bd
         bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
                    in rev ccc nc (rev bbb nb x)
 
+{-
 {-
 instance Num a => Num (Val a) where
   (+) = liftN2 (+)
@@ -173,40 +208,7 @@ bidiPlus = liftBN2 (\x y -> x + y) rev
 instance IsString b => IsString (Func a b) where
   fromString s = uni $ const $ fromString s
 
-data DB = DB { a :: Int, b :: [Int], c :: String }
-  deriving (Eq, Read, Show)
-
-up_a v db = db { a = v }
-up_b v db = db { b = v }
-up_c v db = db { c = v }
-_a :: Func DB Int
---_a = Func (\db -> a db) (\v db -> up_a v db)
-_a = liftBN a up_a nid
-_b :: Func DB [Int]
-_b = liftBN b up_b nid
-_c = liftBN c up_c nid
---_b = Func (\db -> b db) (\v db -> db { b = v })
---_c = Func (\db -> c db) (\v db -> db { c = v })
-_i :: Int -> Func [a] a
-_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) nid
---_i i = Func (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
-upd :: [a] -> Int -> a -> [a]
-upd as i a
-  | i < 0 || i >= length as = error "upd out of range"
-  | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
---_bi i = uni $ \arr -> b arr !! i
-_bi :: Int -> Func DB Int
-_bi i = ncompose (_i i) _b
-
-write :: Func a b -> Func a b -> a -> a
-write (Func f b) v a = b (fnread v a) a
-
 nsp n = msp $ fnread n thedb
-
-thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
-
-nconst :: b -> Func a b
-nconst x = uni $ const x
 
 ntrue = nconst True
 nfalse = nconst False
@@ -298,3 +300,4 @@ _main = do
   nsp $ _a `bidiPlus` (_bi 1)
   msp $ write (_a `bidiPlus` (_bi 1)) 19 thedb
   massert $ (write (_a `bidiPlus` (_bi 1)) 19 thedb) == DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
+-}

@@ -195,23 +195,23 @@ main = do
   msp "hi"
   msp $ vread theroot thedb
   --vsp theroot
-  vsp $ toVal _a
-  vsp $ (liftV (+ 10)) $ toVal _a
-  vsp $ (liftV2 (+)) (toVal _a) (toVal (_bi 1))
-  msp $ vwrite (toVal _a) (vconst 120) thedb
-  massert $ (vwrite (toVal _a) (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
-  vsp $ binc $ toVal _a
-  massert $ (vwrite (binc $ toVal _a) (vconst 130) thedb) ==
+  vsp $ _a
+  vsp $ (liftV (+ 10)) $ _a
+  vsp $ (liftV2 (+)) _a (toVal (_bi 1))
+  msp $ vwrite _a (vconst 120) thedb
+  massert $ (vwrite _a (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+  vsp $ binc $ _a
+  massert $ (vwrite (binc $ _a) (vconst 130) thedb) ==
     DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
-  vsp $ (toVal _a) `bidiPlus` (toVal (_bi 1))
-  msp $ vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb
-  massert $ (vwrite ((toVal _a) `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb) ==
+  vsp $ _a `bidiPlus` (toVal (_bi 1))
+  msp $ vwrite (_a `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb
+  massert $ (vwrite (_a `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb) ==
     DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
   let floo :: Val Int
       floo = 123
   vsp floo
-  msp $ vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 126 $ vwrite (toVal _c) "zxcv" thedb
-  massert $ (vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 123 $ vwrite (toVal _c) "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  msp $ vwrite (toVal (_bi 1)) 335 $ vwrite _a 126 $ vwrite (toVal _c) "zxcv" thedb
+  massert $ (vwrite (toVal (_bi 1)) 335 $ vwrite _a 123 $ vwrite (toVal _c) "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
@@ -236,9 +236,9 @@ main = do
 up_a v db = db { a = v }
 up_b v db = db { b = v }
 up_c v db = db { c = v }
-_a :: Func DB Int
+_a :: Val Int
 --_a = Func (\db -> a db) (\v db -> up_a v db)
-_a = liftBN a up_a nid
+_a = liftBV a up_a theroot
 _b :: Func DB [Int]
 _b = liftBN b up_b nid
 _c = liftBN c up_c nid
@@ -272,129 +272,3 @@ liftBN2 f b bbb ccc = Func fd bd
   where fd x = f (for bbb x) (for ccc x)
         bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
                    in rev ccc nc (rev bbb nb x)
-
-{-
-{-
-instance Num a => Num (Val a) where
-  (+) = liftN2 (+)
-  (*) = liftN2 (*)
-  abs = liftN abs
-  signum = liftN signum
-  fromInteger i = uni $ const $ fromInteger i
-  negate = liftN negate
--}
-
-instance Num b => Num (Func a b) where
-  (+) = liftN2 (+)
-  (*) = liftN2 (*)
-  abs = liftN abs
-  signum = liftN signum
-  fromInteger i = uni $ const $ fromInteger i
-  negate = liftN negate
-
--- Bidirectional additition: in the reverse direction, spread the change
--- between the two inputs.  So forward 1 + 1 = 2 ; reverse 4 = 2 + 2
-bidiPlus :: Func a Int -> Func a Int -> Func a Int
-bidiPlus = liftBN2 (\x y -> x + y) rev
-  where rev nsum (ox, oy) = (nx, ny)
-          where osum = ox + oy
-                delta = nsum - osum
-                nx = ox + (delta `div` 2)
-                ny = nsum - nx
-
-instance IsString b => IsString (Func a b) where
-  fromString s = uni $ const $ fromString s
-
-nsp n = msp $ fnread n thedb
-
-ntrue = nconst True
-nfalse = nconst False
-
-nif :: Func a Bool -> Func a b -> Func a b -> Func a b
-nif (Func fc _) ~(Func ft _) ~(Func fe _) = uni f
-  where f db = if (fc db) then (ft db) else (fe db)
-
-neq :: Eq b => Func a b -> Func a b -> Func a Bool
-neq = liftN2 (==)
-
-napply :: Func a (b -> c) -> Func a b -> Func a c
-napply = liftN2 ($)
-
-nhead :: Func a [b] -> Func a b
-nhead = liftN head
-
-ntail :: Func a [b] -> Func a [b]
-ntail = liftN tail
-
-ncons :: Func a b -> Func a [b] -> Func a [b]
-ncons = liftN2 (:)
-
-{-`
-mymap :: Eq a => (a -> b) -> [a] -> [b]
-mymap f as =
-  if as == []
-    then []
-    else (f (head as)) : (mymap f (tail as))
--}
-
---nmap :: Eq a => Func d (a -> b) -> Func d [a] -> Func d [b]
-nmap :: (Eq a, Show a) => Func DB (a -> b) -> Func DB [a] -> Func DB [b]
-nmap f as = nif (neq as (nconst []))
-                (nconst [])
-                (ncons (napply f (nhead as)) (nmap f (ntail as)))
-
-nmap2 = liftN2 map
-
-{-
-mmap :: Func b c -> Func a [b] -> Func a [c]
-mmap f = liftBN for rev
-  where for = map (for f)
-        rev xs oxs = map (\(x, ox) -> rev f x) $ zip xs oxs
--}
-
-_main = do
-  hSetBuffering stdin NoBuffering
-  msp "hi"
-  let fnoo :: Func DB Int
-      fnoo = 121
-      nfnoo = (-121)
-  nsp fnoo
-  nsp $ fnoo + 1000
-  nsp $ fnoo * 2
-  nsp $ abs nfnoo
-  nsp $ signum nfnoo
-  nsp $ negate nfnoo
-  nsp _a
-  nsp _b
-  nsp _c
-  nsp $ _bi 1
-  nsp $ _bi 1
-  msp $ write _a fnoo thedb
-  msp $ write _a 122 thedb
-  msp $ write _c "zxcv" thedb
-  msp $ write (_bi 1) 333 thedb
-  msp $ write (_bi 1) 334 $ write _a 123 $ write _c "zxcv" thedb
-  massert $ (write (_bi 1) 335 $ write _a 123 $ write _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
-  nsp $ fnoo `neq` 120
-  nsp $ fnoo `neq` 121
-  nsp $ nif (nconst True) "istrue" "isfalse"
-  nsp $ nif (nconst False) "istrue" "isfalse"
-  nsp $ nif ntrue "istrue" "isfalse"
-  nsp $ nif nfalse "istrue" "isfalse"
-  nsp $ neq ntrue ntrue
-  nsp $ neq ntrue nfalse
-  nsp $ neq 12 12
-  nsp $ neq 12 13
-  nsp $ napply (nconst $ \x -> x*10) 13
-  nsp $ nhead (nconst [20, 21, 22])
-  nsp $ ntail (nconst [20, 21, 22])
-  nsp $ nhead $ ntail (nconst [20, 21, 22])
-  nsp $ ncons 19 (nconst [20, 21, 22])
-  nsp $ ncons 19 $ ntail (nconst [20, 21, 22])
-  nsp $ nmap (nconst (\x -> x * 2)) (nconst [1, 2, 3])
-  nsp $ nmap2 (nconst (\x -> x * 2)) (nconst [1, 2, 3])
-  nsp $ _a + (_bi 1)
-  nsp $ _a `bidiPlus` (_bi 1)
-  msp $ write (_a `bidiPlus` (_bi 1)) 19 thedb
-  massert $ (write (_a `bidiPlus` (_bi 1)) 19 thedb) == DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
--}

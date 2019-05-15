@@ -30,10 +30,10 @@ x val, func, sfunc -- builders
 + f db
 + two kinds of nodes?  db -> b and a -> b
 - Rid of Func?
-  - merge fnread and fwrite into callers
+  + merge fnread and fwrite into callers
+  - nmap to use a proper Val -> Val func
   - merge Val and uni
   - rid of func and napply and nid and uni (uni mostly used with Val)?
-  - nmap to use a proper Val -> Val func
 - clean up
 - currying?
 - bidi mmap
@@ -88,10 +88,7 @@ nid = Func id const
 
 uni f = Func f norev
 
-fnread :: Func a b -> a -> b
-fnread (Func f b) a = f a
-
-vread (Val func) = fnread func
+vread = vfor
 
 theroot = Val nid
 
@@ -109,10 +106,8 @@ liftBV2 f b bbb ccc = Val (Func fd bd)
 
 vsp v = msp $ vread v thedb
 
-fwrite :: Func a b -> Func a b -> a -> a
-fwrite (Func f b) v a = b (fnread v a) a
 vwrite :: Val a -> Val a -> DB -> DB
-vwrite (Val func) (Val v) = fwrite func v
+vwrite (Val (Func f b)) v a = b (vread v a) a
 
 -- bidi inc
 binc :: Val Int -> Val Int

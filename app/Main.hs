@@ -20,6 +20,7 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
+- liftV* in terms of liftBV*
 - val, func, sfunc -- builders
 - if uni always has toVal before it?
 - And <--, <--- builders
@@ -197,21 +198,21 @@ main = do
   --vsp theroot
   vsp $ _a
   vsp $ (liftV (+ 10)) $ _a
-  vsp $ (liftV2 (+)) _a (toVal (_bi 1))
+  vsp $ (liftV2 (+)) _a (_bi 1)
   msp $ vwrite _a (vconst 120) thedb
   massert $ (vwrite _a (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
   vsp $ binc $ _a
   massert $ (vwrite (binc $ _a) (vconst 130) thedb) ==
     DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
-  vsp $ _a `bidiPlus` (toVal (_bi 1))
-  msp $ vwrite (_a `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb
-  massert $ (vwrite (_a `bidiPlus` (toVal (_bi 1))) (vconst 19) thedb) ==
+  vsp $ _a `bidiPlus` (_bi 1)
+  msp $ vwrite (_a `bidiPlus` (_bi 1)) (vconst 19) thedb
+  massert $ (vwrite (_a `bidiPlus` (_bi 1)) (vconst 19) thedb) ==
     DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
   let floo :: Val Int
       floo = 123
   vsp floo
-  msp $ vwrite (toVal (_bi 1)) 335 $ vwrite _a 126 $ vwrite (toVal _c) "zxcv" thedb
-  massert $ (vwrite (toVal (_bi 1)) 335 $ vwrite _a 123 $ vwrite (toVal _c) "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  msp $ vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb
+  massert $ (vwrite (_bi 1) 335 $ vwrite _a 123 $ vwrite _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
@@ -237,38 +238,18 @@ up_a v db = db { a = v }
 up_b v db = db { b = v }
 up_c v db = db { c = v }
 _a :: Val Int
---_a = Func (\db -> a db) (\v db -> up_a v db)
 _a = liftBV a up_a theroot
-_b :: Func DB [Int]
-_b = liftBN b up_b nid
-_c = liftBN c up_c nid
---_b = Func (\db -> b db) (\v db -> db { b = v })
---_c = Func (\db -> c db) (\v db -> db { c = v })
-_i :: Int -> Func [a] a
-_i i = liftBN (!! i) (\nv oarr -> upd oarr i nv) nid
---_i i = Func (\arr -> arr !! i) (\nv oarr -> upd oarr i nv)
+_b = liftBV b up_b theroot
+_c = liftBV c up_c theroot
+_i :: Int -> Val [a] -> Val a
+_i i = liftBV (!! i) (\nv oarr -> upd oarr i nv)
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
   | otherwise = (take i as) ++ [a] ++ (drop (i+1) as)
 --_bi i = uni $ \arr -> b arr !! i
-_bi :: Int -> Func DB Int
-_bi i = ncompose (_i i) _b
+_bi :: Int -> Val Int
+_bi i = (_i i) _b
 
 write :: Func a b -> Func a b -> a -> a
 write (Func f b) v a = b (fnread v a) a
-
-liftN :: (b -> c) -> Func a b -> Func a c
-liftN f n = toUni $ liftBN f undefined n
-
-liftN2 :: (b -> c -> d) -> Func a b -> Func a c -> Func a d
-liftN2 f n0 n1 = toUni $ liftBN2 f undefined n0 n1
-
-liftBN :: (b -> c) -> (c -> b -> b) -> Func a b -> Func a c
-liftBN f b (Func fa ba) = Func (\x -> f (fa x)) (\v x -> (ba (b v (fa x)) x))
-
-liftBN2 :: (b -> c -> d) -> (d -> (b, c) -> (b, c)) -> Func a b -> Func a c -> Func a d
-liftBN2 f b bbb ccc = Func fd bd
-  where fd x = f (for bbb x) (for ccc x)
-        bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
-                   in rev ccc nc (rev bbb nb x)

@@ -21,32 +21,25 @@ x NEq
 + norev constructor (uni)
 + N / Node
 + liftV* in terms of liftBV*
-- val, func, sfunc -- builders
+x val, func, sfunc -- builders
 + if uni always has toVal before it?
-- And <--, <--- builders
-- Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
-  - want to make sure you can't pass a val as func so maybe just different types with a converter
-  - which is just (id, id)
-  - Func should actually be (-->) because we need to use these things in actual code
-  - Which also suggests F and V; but really a preprocessor will be necessary I guess
-- bidi head, tail, cons
-- Can you do TMI.., as in TMI.(.)
-- mmap
-- mmap -> nodemap
-- shouldn't need nid
-  - Is there a way for a node to only have the b type?
++ shouldn't need nid
+  + Is there a way for a node to only have the b type?
 + lifters, obvs
 + reverse lifters
-- combinators for those basic elements
 + f db
-- fromList? OverloadedLists extension + IsList
-- reversible map?  nif neq, how??
-- two kinds of nodes?  db -> b and a -> b
-- Node monad: collect writes, then apply them sequentially
-- Use infix instead of N/Node/Node, like fclabels :->
-- Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
-  modified db
++ two kinds of nodes?  db -> b and a -> b
+- clean up
 - currying?
+- bidi mmap
+- Node monad: collect writes, then apply them sequentially
+  - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
+  modified db
+- ====
+- Terse notation? F or -->, V
+- bidi head, tail, cons
+- Can you do TMI.., as in TMI.(.)
+- fromList? OverloadedLists extension + IsList
 - Rename to hide orig stuff and rename node stuff to look orig
 - How do features translate to node-lifted world?
 - How are errors

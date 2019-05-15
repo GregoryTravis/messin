@@ -33,6 +33,7 @@ x val, func, sfunc -- builders
 - currying?
 - bidi mmap
 - Node monad: collect writes, then apply them sequentially
+  - Instead of applying the writes, collect them?
   - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - ====
@@ -203,8 +204,10 @@ main = do
   let floo :: Val Int
       floo = 123
   vsp floo
+  msp "mult"
   msp $ vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb
-  massert $ (vwrite (_bi 1) 335 $ vwrite _a 123 $ vwrite _c "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+  massert $ (vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb) ==
+    DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
   vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]

@@ -66,6 +66,8 @@ newtype Val b = Val (Func DB b)
 toVal :: Func DB b -> Val b
 toVal func = Val func
 
+vconst v = Val (nconst v)
+
 napply' :: Func a b -> Val a -> Val b
 napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
   where nvfor db = ffor (vfor db)
@@ -108,6 +110,9 @@ liftF2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
 
 vsp v = msp $ vread v thedb
 
+vwrite :: Val a -> Val a -> DB -> DB
+vwrite (Val func) (Val v) = write func v
+
 {-
 write :: Func a b -> Func a b -> a -> a
 write (Func f b) v a = b (fnread v a) a
@@ -120,6 +125,7 @@ main = do
   vsp $ toVal _a
   vsp $ (liftF (+ 10)) $ toVal _a
   vsp $ (liftF2 (+)) (toVal _a) (toVal (_bi 1))
+  msp $ vwrite (toVal _a) (vconst 120) thedb
 
 liftN :: (b -> c) -> Func a b -> Func a c
 liftN f n = toUni $ liftBN f undefined n

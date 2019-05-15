@@ -59,8 +59,10 @@ import qualified Debug.Trace as TR
 import System.IO
 import Util 
 
-data DB = DB { a :: Int, b :: [Int], c :: String }
-  deriving (Eq, Read, Show)
+data Func a b = Func (a -> b) (b -> a -> a)
+
+for (Func f b) = f
+rev (Func f b) = b
 
 norev = undefined
 
@@ -69,10 +71,6 @@ nid = Func id const
 
 uni f = Func f norev
 toUni (Func f b) = Func f norev
-
-data Func a b = Func (a -> b) (b -> a -> a)
-for (Func f b) = f
-rev (Func f b) = b
 
 ncompose :: Func b c -> Func a b -> Func a c
 ncompose f@(Func fbc bbc) g@(Func fab bab) = Func fac bac
@@ -120,6 +118,9 @@ bidiPlus = liftBN2 (\x y -> x + y) rev
 
 instance IsString b => IsString (Func a b) where
   fromString s = uni $ const $ fromString s
+
+data DB = DB { a :: Int, b :: [Int], c :: String }
+  deriving (Eq, Read, Show)
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

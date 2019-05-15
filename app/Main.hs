@@ -126,8 +126,10 @@ liftBV2 f b bbb ccc = Val (Func fd bd)
 
 vsp v = msp $ vread v thedb
 
+fwrite :: Func a b -> Func a b -> a -> a
+fwrite (Func f b) v a = b (fnread v a) a
 vwrite :: Val a -> Val a -> DB -> DB
-vwrite (Val func) (Val v) = write func v
+vwrite (Val func) (Val v) = fwrite func v
 
 -- bidi inc
 binc :: Val Int -> Val Int
@@ -250,6 +252,3 @@ upd as i a
 --_bi i = uni $ \arr -> b arr !! i
 _bi :: Int -> Val Int
 _bi i = (_i i) _b
-
-write :: Func a b -> Func a b -> a -> a
-write (Func f b) v a = b (fnread v a) a

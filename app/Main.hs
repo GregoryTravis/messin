@@ -31,6 +31,7 @@ x val, func, sfunc -- builders
 + two kinds of nodes?  db -> b and a -> b
 - Rid of Func?
   + merge fnread and fwrite into callers
+  + rid of napply
   - nmap to use a proper Val -> Val func
   - merge Val and uni
   - rid of func and napply and nid and uni (uni mostly used with Val)?
@@ -73,11 +74,6 @@ newtype Val b = Val (Func DB b)
 
 vconst v = Val (uni $ const v)
 
-napply :: Func a b -> Val a -> Val b
-napply (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
-  where nvfor db = ffor (vfor db)
-        nvrev b db = vrev (frev b (vfor db)) db
-
 vfor (Val (Func f r)) = f
 vrev (Val (Func f r)) = r
 
@@ -97,7 +93,10 @@ liftV f = liftBV f norev
 liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f = liftBV2 f norev
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
-liftBV f r a = napply (Func f r) a
+liftBV f b x = Val (Func nf nb)
+  where nf db = f (vfor x db)
+        nb ny db = vrev x (b ny (vfor x db)) db
+
 liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c
 liftBV2 f b bbb ccc = Val (Func fd bd)
   where fd x = f (vfor bbb x) (vfor ccc x)
@@ -143,9 +142,6 @@ nif c ~t ~e = Val $ uni f
 
 neq :: Eq b => Val b -> Val b -> Val Bool
 neq = liftV2 (==)
-
---napply :: Val (b -> c) -> Val b -> Val c
---napply = liftV2 ($)
 
 nhead :: Val [b] -> Val b
 nhead = liftV head
@@ -209,7 +205,7 @@ main = do
   vsp $ neq ntrue nfalse
   vsp $ neq 12 12
   vsp $ neq 12 13
-  vsp $ napply (uni $ \x -> x*10) 13
+  vsp $ liftV (*10) 13
   vsp $ nhead (vconst [20, 21, 22])
   vsp $ ntail (vconst [20, 21, 22])
   vsp $ nhead $ ntail (vconst [20, 21, 22])

@@ -215,6 +215,22 @@ main = do
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
   massert $ (vread (nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
+  vsp $ floo `neq` 120
+  vsp $ floo `neq` 123
+  vsp $ nif (vconst True) "istrue" "isfalse"
+  vsp $ nif (vconst False) "istrue" "isfalse"
+  vsp $ nif ntrue "istrue" "isfalse"
+  vsp $ nif nfalse "istrue" "isfalse"
+  vsp $ neq ntrue ntrue
+  vsp $ neq ntrue nfalse
+  vsp $ neq 12 12
+  vsp $ neq 12 13
+  vsp $ napply' (uni $ \x -> x*10) 13
+  vsp $ nhead (vconst [20, 21, 22])
+  vsp $ ntail (vconst [20, 21, 22])
+  vsp $ nhead $ ntail (vconst [20, 21, 22])
+  vsp $ ncons 19 (vconst [20, 21, 22])
+  vsp $ ncons 19 $ ntail (vconst [20, 21, 22])
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

@@ -20,9 +20,9 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
-- liftV* in terms of liftBV*
++ liftV* in terms of liftBV*
 - val, func, sfunc -- builders
-- if uni always has toVal before it?
++ if uni always has toVal before it?
 - And <--, <--- builders
 - Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
   - want to make sure you can't pass a val as func so maybe just different types with a converter
@@ -71,9 +71,6 @@ thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
 data Func a b = Func (a -> b) (b -> a -> a)
 newtype Val b = Val (Func DB b)
-
-toVal :: Func DB b -> Val b
-toVal func = Val func
 
 vconst v = Val (nconst v)
 nconst :: b -> Func a b
@@ -150,17 +147,17 @@ instance Num a => Num (Val a) where
   (*) = liftV2 (*)
   abs = liftV abs
   signum = liftV signum
-  fromInteger i = toVal $ uni $ const $ fromInteger i
+  fromInteger i = Val $ uni $ const $ fromInteger i
   negate = liftV negate
 
 instance IsString a => IsString (Val a) where
-  fromString s = toVal $ uni $ const $ fromString s
+  fromString s = Val $ uni $ const $ fromString s
 
 ntrue = vconst True
 nfalse = vconst False
 
 nif :: Val Bool -> Val b -> Val b -> Val b
-nif c ~t ~e = toVal $ uni f
+nif c ~t ~e = Val $ uni f
   where f db = if (vfor c db) then (vfor t db) else (vfor e db)
 
 neq :: Eq b => Val b -> Val b -> Val Bool

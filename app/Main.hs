@@ -63,6 +63,9 @@ import Util
 data Func a b = Func (a -> b) (b -> a -> a)
 newtype Val b = Val (Func DB b)
 
+toVal :: Func DB b -> Val b
+toVal func = Val func
+
 napply' :: Func a b -> Val a -> Val b
 napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
   where nvfor db = ffor (vfor db)
@@ -70,6 +73,8 @@ napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
 
 for (Func f b) = f
 rev (Func f b) = b
+vfor (Val func) = for func
+vrev (Val func) = rev func
 
 norev = undefined
 
@@ -90,6 +95,32 @@ fshow (Func f b) a = show $ f a
 fnread :: Func a b -> a -> b
 fnread (Func f b) a = f a
 
+vread (Val func) = fnread func
+
+theroot = Val nid
+
+liftF :: (a -> b) -> Val a -> Val b
+liftF f a = napply' (uni f) a
+liftF2 :: (a -> b -> c) -> Val a -> Val b -> Val c
+liftF2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
+-- liftF twice?
+-- ? liftF2 f a b = uni  f
+
+vsp v = msp $ vread v thedb
+
+{-
+write :: Func a b -> Func a b -> a -> a
+write (Func f b) v a = b (fnread v a) a
+-}
+
+main = do
+  msp "hi"
+  --msp $ vread theroot thedb
+  vsp theroot
+  vsp $ toVal _a
+  vsp $ (liftF (+ 10)) $ toVal _a
+  vsp $ (liftF2 (+)) (toVal _a) (toVal (_bi 1))
+
 liftN :: (b -> c) -> Func a b -> Func a c
 liftN f n = toUni $ liftBN f undefined n
 
@@ -104,6 +135,16 @@ liftBN2 f b bbb ccc = Func fd bd
   where fd x = f (for bbb x) (for ccc x)
         bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
                    in rev ccc nc (rev bbb nb x)
+
+{-
+instance Num a => Num (Val a) where
+  (+) = liftN2 (+)
+  (*) = liftN2 (*)
+  abs = liftN abs
+  signum = liftN signum
+  fromInteger i = uni $ const $ fromInteger i
+  negate = liftN negate
+-}
 
 instance Num b => Num (Func a b) where
   (+) = liftN2 (+)
@@ -206,7 +247,7 @@ mmap f = liftBN for rev
         rev xs oxs = map (\(x, ox) -> rev f x) $ zip xs oxs
 -}
 
-main = do
+_main = do
   hSetBuffering stdin NoBuffering
   msp "hi"
   let fnoo :: Func DB Int

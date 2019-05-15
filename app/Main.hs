@@ -164,10 +164,10 @@ mymap f as =
     else (f (head as)) : (mymap f (tail as))
 -}
 
-nmap :: (Eq a, Show a) => Func a b -> Val [a] -> Val [b]
+nmap :: (Eq a, Show a) => (Val a -> Val b) -> Val [a] -> Val [b]
 nmap f as = nif (neq as (vconst []))
                 (vconst [])
-                (ncons (napply f (nhead as)) (nmap f (ntail as)))
+                (ncons (f (nhead as)) (nmap f (ntail as)))
 
 nmap2 = liftV2 map
 
@@ -195,9 +195,9 @@ main = do
   msp $ vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb
   massert $ (vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb) ==
     DB { a = 126 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
-  vsp $ nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])
+  vsp $ nmap (liftV (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
-  massert $ (vread (nmap (uni (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
+  massert $ (vread (nmap (liftV (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
   massert $ (vread (nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
   vsp $ floo `neq` 120
   vsp $ floo `neq` 123

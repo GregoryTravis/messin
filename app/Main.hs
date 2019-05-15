@@ -191,6 +191,7 @@ nmap f as = nif (neq as (vconst []))
 nmap2 = liftV2 map
 
 main = do
+  hSetBuffering stdin NoBuffering
   msp "hi"
   msp $ vread theroot thedb
   --vsp theroot

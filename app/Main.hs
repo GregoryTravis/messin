@@ -192,14 +192,14 @@ main = do
   vsp $ _a
   vsp $ (liftV (+ 10)) $ _a
   vsp $ (liftV2 (+)) _a (_bi 1)
-  msp $ vwrite _a (vconst 120) thedb
-  massert $ (vwrite _a (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+  msp $ vwrite _a 120 thedb
+  massert $ (vwrite _a 120 thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
   vsp $ binc $ _a
-  massert $ (vwrite (binc $ _a) (vconst 130) thedb) ==
+  massert $ (vwrite (binc $ _a) 130 thedb) ==
     DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
   vsp $ _a `bidiPlus` (_bi 1)
-  msp $ vwrite (_a `bidiPlus` (_bi 1)) (vconst 19) thedb
-  massert $ (vwrite (_a `bidiPlus` (_bi 1)) (vconst 19) thedb) ==
+  msp $ vwrite (_a `bidiPlus` (_bi 1)) 19 thedb
+  massert $ (vwrite (_a `bidiPlus` (_bi 1)) 19 thedb) ==
     DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
   let floo :: Val Int
       floo = 123

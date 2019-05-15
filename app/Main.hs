@@ -73,10 +73,8 @@ napply (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
   where nvfor db = ffor (vfor db)
         nvrev b db = vrev (frev b (vfor db)) db
 
-for (Func f b) = f
-rev (Func f b) = b
-vfor (Val func) = for func
-vrev (Val func) = rev func
+vfor (Val (Func f r)) = f
+vrev (Val (Func f r)) = r
 
 norev = error "norev"
 
@@ -85,11 +83,6 @@ nid = Func id const
 
 uni f = Func f norev
 toUni (Func f b) = Func f norev
-
-ncompose :: Func b c -> Func a b -> Func a c
-ncompose f@(Func fbc bbc) g@(Func fab bab) = Func fac bac
-  where fac a = (for f . for g) a
-        bac c oa = rev g (rev f c (for g oa)) oa
 
 fshow :: Show b => Func a b -> a -> String
 fshow (Func f b) a = show $ f a

@@ -20,6 +20,12 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
+- Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
+  - want to make sure you can't pass a val as func so maybe just different types with a converter
+  - which is just (id, id)
+  - Func should actually be (-->) because we need to use these things in actual code
+  - Which also suggests F and V; but really a preprocessor will be necessary I guess
+- Can you do TMI.., as in TMI.(.)
 - mmap
 - mmap -> nodemap
 - shouldn't need nid

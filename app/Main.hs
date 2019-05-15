@@ -29,6 +29,11 @@ x val, func, sfunc -- builders
 + reverse lifters
 + f db
 + two kinds of nodes?  db -> b and a -> b
+- Rid of Func?
+  - merge fnread and fwrite into callers
+  - merge Val and uni
+  - rid of func and napply and nid and uni (uni mostly used with Val)?
+  - nmap to use a proper Val -> Val func
 - clean up
 - currying?
 - bidi mmap
@@ -37,7 +42,7 @@ x val, func, sfunc -- builders
   - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - ====
-- Terse notation? F or -->, V; what about <-- for write???
+- Terse notation? F or --> (can have --> even if no Func), V; what about <-- for write???
 - bidi head, tail, cons
 - Can you do TMI.., as in TMI.(.)
 - fromList? OverloadedLists extension + IsList
@@ -82,9 +87,6 @@ norev = error "norev"
 nid = Func id const
 
 uni f = Func f norev
-
-fshow :: Show b => Func a b -> a -> String
-fshow (Func f b) a = show $ f a
 
 fnread :: Func a b -> a -> b
 fnread (Func f b) a = f a

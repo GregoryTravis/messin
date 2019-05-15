@@ -113,13 +113,17 @@ liftV :: (a -> b) -> Val a -> Val b
 liftV f a = napply' (uni f) a
 liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
---liftBF :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
---liftBF f r a = napply' (Func f r) a
+liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
+liftBV f r a = napply' (Func f r) a
 
 vsp v = msp $ vread v thedb
 
 vwrite :: Val a -> Val a -> DB -> DB
 vwrite (Val func) (Val v) = write func v
+
+-- bidi inc
+binc :: Val Int -> Val Int
+binc = liftBV (+1) (\i _ -> i-1)
 
 main = do
   msp "hi"
@@ -130,6 +134,8 @@ main = do
   vsp $ (liftV2 (+)) (toVal _a) (toVal (_bi 1))
   msp $ vwrite (toVal _a) (vconst 120) thedb
   massert $ (vwrite (toVal _a) (vconst 120) thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+  vsp $ binc $ toVal _a
+  msp $ vwrite (binc $ toVal _a) (vconst 130) thedb
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

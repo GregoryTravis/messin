@@ -82,7 +82,6 @@ norev = error "norev"
 nid = Func id const
 
 uni f = Func f norev
-toUni (Func f b) = Func f norev
 
 fshow :: Show b => Func a b -> a -> String
 fshow (Func f b) a = show $ f a

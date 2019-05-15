@@ -37,7 +37,7 @@ x val, func, sfunc -- builders
   - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
 - ====
-- Terse notation? F or -->, V
+- Terse notation? F or -->, V; what about <-- for write???
 - bidi head, tail, cons
 - Can you do TMI.., as in TMI.(.)
 - fromList? OverloadedLists extension + IsList
@@ -228,6 +228,11 @@ main = do
   vsp $ nhead $ ntail (vconst [20, 21, 22])
   vsp $ ncons 19 (vconst [20, 21, 22])
   vsp $ ncons 19 $ ntail (vconst [20, 21, 22])
+  vsp $ (+ 10) _a
+  vsp $ (+) _a (_bi 1)
+  vsp $ _a + 10
+  vsp $ 10 + _a
+  vsp $ _a + (_bi 1)
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

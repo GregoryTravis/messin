@@ -20,6 +20,7 @@ x NEq
 + write map using nodes
 + norev constructor (uni)
 + N / Node
+- val, func, sfunc -- builders
 - Func and Val, Val hidden ctor, toFunc Val; use newtype for Val if it can be hidden, or not
   - want to make sure you can't pass a val as func so maybe just different types with a converter
   - which is just (id, id)
@@ -60,6 +61,12 @@ import System.IO
 import Util 
 
 data Func a b = Func (a -> b) (b -> a -> a)
+newtype Val b = Val (Func DB b)
+
+napply' :: Func a b -> Val a -> Val b
+napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
+  where nvfor db = ffor (vfor db)
+        nvrev b db = vrev (frev b (vfor db)) db
 
 for (Func f b) = f
 rev (Func f b) = b

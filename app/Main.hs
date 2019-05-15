@@ -66,12 +66,10 @@ thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 data Func a b = Func (a -> b) (b -> a -> a)
 newtype Val b = Val (Func DB b)
 
-vconst v = Val (nconst v)
-nconst :: b -> Func a b
-nconst x = uni $ const x
+vconst v = Val (uni $ const v)
 
-napply' :: Func a b -> Val a -> Val b
-napply' (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
+napply :: Func a b -> Val a -> Val b
+napply (Func ffor frev) (Val (Func vfor vrev)) = Val (Func nvfor nvrev)
   where nvfor db = ffor (vfor db)
         nvrev b db = vrev (frev b (vfor db)) db
 
@@ -108,7 +106,7 @@ liftV f = liftBV f norev
 liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f = liftBV2 f norev
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
-liftBV f r a = napply' (Func f r) a
+liftBV f r a = napply (Func f r) a
 liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c
 liftBV2 f b bbb ccc = Val (Func fd bd)
   where fd x = f (vfor bbb x) (vfor ccc x)
@@ -180,7 +178,7 @@ mymap f as =
 nmap :: (Eq a, Show a) => Func a b -> Val [a] -> Val [b]
 nmap f as = nif (neq as (vconst []))
                 (vconst [])
-                (ncons (napply' f (nhead as)) (nmap f (ntail as)))
+                (ncons (napply f (nhead as)) (nmap f (ntail as)))
 
 nmap2 = liftV2 map
 
@@ -222,7 +220,7 @@ main = do
   vsp $ neq ntrue nfalse
   vsp $ neq 12 12
   vsp $ neq 12 13
-  vsp $ napply' (uni $ \x -> x*10) 13
+  vsp $ napply (uni $ \x -> x*10) 13
   vsp $ nhead (vconst [20, 21, 22])
   vsp $ ntail (vconst [20, 21, 22])
   vsp $ nhead $ ntail (vconst [20, 21, 22])

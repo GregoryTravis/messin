@@ -148,6 +148,9 @@ instance Num a => Num (Val a) where
   fromInteger i = toVal $ uni $ const $ fromInteger i
   negate = liftV negate
 
+instance IsString a => IsString (Val a) where
+  fromString s = toVal $ uni $ const $ fromString s
+
 main = do
   msp "hi"
   msp $ vread theroot thedb
@@ -167,6 +170,8 @@ main = do
   let floo :: Val Int
       floo = 123
   vsp floo
+  msp $ vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 126 $ vwrite (toVal _c) "zxcv" thedb
+  massert $ (vwrite (toVal (_bi 1)) 335 $ vwrite (toVal _a) 123 $ vwrite (toVal _c) "zxcv" thedb) == DB { a = 123 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }

@@ -89,7 +89,7 @@ rev (Func f b) = b
 vfor (Val func) = for func
 vrev (Val func) = rev func
 
-norev = undefined
+norev = error "norev"
 
 -- This is just weird
 nid = Func id const
@@ -113,9 +113,9 @@ vread (Val func) = fnread func
 theroot = Val nid
 
 liftV :: (a -> b) -> Val a -> Val b
-liftV f a = napply' (uni f) a
+liftV f = liftBV f norev
 liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
-liftV2 f a b = toVal $ uni $ \db -> f (vfor a db) (vfor b db)
+liftV2 f = liftBV2 f norev
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
 liftBV f r a = napply' (Func f r) a
 liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c

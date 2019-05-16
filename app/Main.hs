@@ -3,46 +3,11 @@
 module Main where
 
 {-
-+ Node as wrapped DB -> a
-+ DB field accessor node constructors
-+ Make it a tuple
-+ backwards function
-+ clean up
-+ write takes a node instead of a raw value (necessary to not have to pass db everywhere)
-+ string literal too
-x NEq
-+ nequal
-+ generic, not DB
-+ maybe a b instead of b a
-+ change db -> a
-+ _bi should be a composition
-+ _bi rev
-+ write map using nodes
-+ norev constructor (uni)
-+ N / Node
-+ liftV* in terms of liftBV*
-x val, func, sfunc -- builders
-+ if uni always has toVal before it?
-+ shouldn't need nid
-  + Is there a way for a node to only have the b type?
-+ lifters, obvs
-+ reverse lifters
-+ f db
-+ two kinds of nodes?  db -> b and a -> b
-+ Rid of Func
-  + merge fnread and fwrite into callers
-  + rid of napply
-  + nmap to use a proper Val -> Val func
-  + merge Val and uni
-  + rid of nid
-  + rid of Func
-- clean up
-- currying?
-- bidi mmap
 - Node monad: collect writes, then apply them sequentially
   - Instead of applying the writes, collect them?
   - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
   modified db
+- bidi mmap
 - ====
 - Terse notation? F or --> (can have --> even if no Func), V; what about <-- for write???
 - bidi head, tail, cons
@@ -60,6 +25,8 @@ arrlookup_b :: Int -> a -> [a] -> [a]
 -}
 
 import Control.Applicative
+import Control.Monad.State
+import Data.Function
 import Data.String (IsString(..))
 import qualified Debug.Trace as TR
 import System.IO
@@ -155,7 +122,7 @@ nmap f as = nif (neq as (vconst []))
 
 nmap2 = liftV2 map
 
-main = do
+nmain = do
   hSetBuffering stdin NoBuffering
   msp "hi"
   msp $ vread theroot thedb
@@ -221,3 +188,25 @@ upd as i a
 --_bi i = uni $ \arr -> b arr !! i
 _bi :: Int -> Val Int
 _bi i = (_i i) _b
+
+type Write = DB -> DB
+mkwrite :: Val a -> Val a -> Write
+mkwrite = vwrite
+
+(<--) :: Val a -> Val a -> StateT [Write] IO ()
+dest <-- src = do
+  writes <- get
+  put $ writes ++ [mkwrite dest src]
+
+foo :: StateT [Write] IO ()
+foo = do
+  _a <-- 120
+
+applyWrites :: [Write] -> DB -> DB
+applyWrites writes db = foldl (&) db writes
+
+main = do
+  msp "hi"
+  ((), writes) <- runStateT foo []
+  let newdb = applyWrites writes thedb
+  msp newdb

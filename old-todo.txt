@@ -1,0 +1,33 @@
++ Node as wrapped DB -> a
++ DB field accessor node constructors
++ Make it a tuple
++ backwards function
++ clean up
++ write takes a node instead of a raw value (necessary to not have to pass db everywhere)
++ string literal too
+x NEq
++ nequal
++ generic, not DB
++ maybe a b instead of b a
++ change db -> a
++ _bi should be a composition
++ _bi rev
++ write map using nodes
++ norev constructor (uni)
++ N / Node
++ liftV* in terms of liftBV*
+x val, func, sfunc -- builders
++ if uni always has toVal before it?
++ shouldn't need nid
+  + Is there a way for a node to only have the b type?
++ lifters, obvs
++ reverse lifters
++ f db
++ two kinds of nodes?  db -> b and a -> b
++ Rid of Func
+  + merge fnread and fwrite into callers
+  + rid of napply
+  + nmap to use a proper Val -> Val func
+  + merge Val and uni
+  + rid of nid
+  + rid of Func

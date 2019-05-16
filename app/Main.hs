@@ -193,20 +193,21 @@ type Write = DB -> DB
 mkwrite :: Val a -> Val a -> Write
 mkwrite = vwrite
 
-type TMI a = StateT [Write] IO a
+type TMI a = StateT [Write] IO (Val a)
 
 (<--) :: Val a -> Val a -> TMI ()
 dest <-- src = do
   writes <- get
   put $ writes ++ [mkwrite dest src]
+  return $ vconst ()
 
 io = liftIO
 
-foo :: TMI String
+foo :: TMI Int
 foo = do
   io $ msp "ho"
-  x <- _a <-- 120
-  return "yeah"
+  _a <-- 120
+  return _a
 
 applyWrites :: [Write] -> DB -> DB
 applyWrites writes db = foldl (&) db writes
@@ -216,4 +217,4 @@ main = do
   (x, writes) <- runStateT foo []
   let newdb = applyWrites writes thedb
   msp newdb
-  msp x
+  msp $ vread x thedb

@@ -34,8 +34,8 @@ x val, func, sfunc -- builders
   + rid of napply
   + nmap to use a proper Val -> Val func
   + merge Val and uni
-  - rid of nid
-  - rid of Func and napply and nid and uni (uni mostly used with Val)?
+  + rid of nid
+  - rid of Func
 - clean up
 - currying?
 - bidi mmap

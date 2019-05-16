@@ -3,6 +3,7 @@
 module Main where
 
 {-
+- no thedb global, pass it through
 - Node monad: collect writes, then apply them sequentially
   - Instead of applying the writes, collect them?
   - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
@@ -212,9 +213,12 @@ foo = do
 applyWrites :: [Write] -> DB -> DB
 applyWrites writes db = foldl (&) db writes
 
-main = do
+tmiRun action = do
   msp "hi"
-  (x, writes) <- runStateT foo []
-  let newdb = applyWrites writes thedb
+  (x, writes) <- runStateT action []
+  let result = vread x thedb
+      newdb = applyWrites writes thedb
   msp newdb
-  msp $ vread x thedb
+  msp result
+
+main = tmiRun foo

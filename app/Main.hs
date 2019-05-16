@@ -107,7 +107,7 @@ vwrite (Val f b) v a = b (vread v a) a
 -- bidi inc
 binc :: Val Int -> Val Int
 binc = liftBV (+1) (\i _ -> i-1)
---
+
 -- Bidirectional additition: in the reverse direction, spread the change
 -- between the two inputs.  So forward 1 + 1 = 2 ; reverse 4 = 2 + 2
 bidiPlus :: Val Int -> Val Int -> Val Int
@@ -147,14 +147,6 @@ ntail = liftV tail
 
 ncons :: Val b -> Val [b] -> Val [b]
 ncons = liftV2 (:)
-
-{-
-mymap :: Eq a => (a -> b) -> [a] -> [b]
-mymap f as =
-  if as == []
-    then []
-    else (f (head as)) : (mymap f (tail as))
--}
 
 nmap :: (Eq a, Show a) => (Val a -> Val b) -> Val [a] -> Val [b]
 nmap f as = nif (neq as (vconst []))

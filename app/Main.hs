@@ -32,8 +32,8 @@ x val, func, sfunc -- builders
 - Rid of Func?
   + merge fnread and fwrite into callers
   + rid of napply
-  - nmap to use a proper Val -> Val func
-  - merge Val and uni
+  + nmap to use a proper Val -> Val func
+  + merge Val and uni
   - rid of func and napply and nid and uni (uni mostly used with Val)?
 - clean up
 - currying?
@@ -72,7 +72,7 @@ thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 data Func a b = Func (a -> b) (b -> a -> a)
 newtype Val b = Val (Func DB b)
 
-vconst v = Val (uni $ const v)
+vconst v = uni $ const v
 
 vfor (Val (Func f r)) = f
 vrev (Val (Func f r)) = r
@@ -82,7 +82,7 @@ norev = error "norev"
 -- This is just weird
 nid = Func id const
 
-uni f = Func f norev
+uni f = Val (Func f norev)
 
 vread = vfor
 
@@ -127,17 +127,17 @@ instance Num a => Num (Val a) where
   (*) = liftV2 (*)
   abs = liftV abs
   signum = liftV signum
-  fromInteger i = Val $ uni $ const $ fromInteger i
+  fromInteger i = uni $ const $ fromInteger i
   negate = liftV negate
 
 instance IsString a => IsString (Val a) where
-  fromString s = Val $ uni $ const $ fromString s
+  fromString s = uni $ const $ fromString s
 
 ntrue = vconst True
 nfalse = vconst False
 
 nif :: Val Bool -> Val b -> Val b -> Val b
-nif c ~t ~e = Val $ uni f
+nif c ~t ~e = uni f
   where f db = if (vfor c db) then (vfor t db) else (vfor e db)
 
 neq :: Eq b => Val b -> Val b -> Val Bool

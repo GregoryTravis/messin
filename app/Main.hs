@@ -3,6 +3,7 @@
 module Main where
 
 {-
+- add a persistent main
 - no thedb global, pass it through
 - Node monad: collect writes, then apply them sequentially
   - Instead of applying the writes, collect them?

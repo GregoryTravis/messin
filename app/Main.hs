@@ -74,14 +74,14 @@ data Val b = Val (DB -> b) (b -> DB -> DB)
 
 vconst v = uni $ const v
 
-vfor (Val f r) = f
-vrev (Val f r) = r
+for (Val f r) = f
+rev (Val f r) = r
 
 norev = error "norev"
 
 uni f = Val f norev
 
-vread = vfor
+vread = for
 
 theroot = Val id const
 
@@ -91,14 +91,13 @@ liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f = liftBV2 f norev
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
 liftBV f b x = Val nf nb
-  where nf db = f (vfor x db)
-        nb ny db = vrev x (b ny (vfor x db)) db
-
+  where nf db = f (for x db)
+        nb ny db = rev x (b ny (for x db)) db
 liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c
 liftBV2 f b bbb ccc = Val fd bd
-  where fd x = f (vfor bbb x) (vfor ccc x)
-        bd nv x = let (nb, nc) = b nv (vfor bbb x, vfor ccc x)
-                   in vrev ccc nc (vrev bbb nb x)
+  where fd x = f (for bbb x) (for ccc x)
+        bd nv x = let (nb, nc) = b nv (for bbb x, for ccc x)
+                   in rev ccc nc (rev bbb nb x)
 
 vsp v = msp $ vread v thedb
 
@@ -135,7 +134,7 @@ nfalse = vconst False
 
 nif :: Val Bool -> Val b -> Val b -> Val b
 nif c ~t ~e = uni f
-  where f db = if (vfor c db) then (vfor t db) else (vfor e db)
+  where f db = if (for c db) then (for t db) else (for e db)
 
 neq :: Eq b => Val b -> Val b -> Val Bool
 neq = liftV2 (==)

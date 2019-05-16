@@ -34,7 +34,8 @@ x val, func, sfunc -- builders
   + rid of napply
   + nmap to use a proper Val -> Val func
   + merge Val and uni
-  - rid of func and napply and nid and uni (uni mostly used with Val)?
+  - rid of nid
+  - rid of Func and napply and nid and uni (uni mostly used with Val)?
 - clean up
 - currying?
 - bidi mmap
@@ -79,14 +80,11 @@ vrev (Val (Func f r)) = r
 
 norev = error "norev"
 
--- This is just weird
-nid = Func id const
-
 uni f = Val (Func f norev)
 
 vread = vfor
 
-theroot = Val nid
+theroot = Val (Func id const)
 
 liftV :: (a -> b) -> Val a -> Val b
 liftV f = liftBV f norev

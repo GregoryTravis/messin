@@ -29,13 +29,13 @@ x val, func, sfunc -- builders
 + reverse lifters
 + f db
 + two kinds of nodes?  db -> b and a -> b
-- Rid of Func?
++ Rid of Func
   + merge fnread and fwrite into callers
   + rid of napply
   + nmap to use a proper Val -> Val func
   + merge Val and uni
   + rid of nid
-  - rid of Func
+  + rid of Func
 - clean up
 - currying?
 - bidi mmap
@@ -70,33 +70,32 @@ data DB = DB { a :: Int, b :: [Int], c :: String }
 
 thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
 
-data Func a b = Func (a -> b) (b -> a -> a)
-newtype Val b = Val (Func DB b)
+data Val b = Val (DB -> b) (b -> DB -> DB)
 
 vconst v = uni $ const v
 
-vfor (Val (Func f r)) = f
-vrev (Val (Func f r)) = r
+vfor (Val f r) = f
+vrev (Val f r) = r
 
 norev = error "norev"
 
-uni f = Val (Func f norev)
+uni f = Val f norev
 
 vread = vfor
 
-theroot = Val (Func id const)
+theroot = Val id const
 
 liftV :: (a -> b) -> Val a -> Val b
 liftV f = liftBV f norev
 liftV2 :: (a -> b -> c) -> Val a -> Val b -> Val c
 liftV2 f = liftBV2 f norev
 liftBV :: (a -> b) -> (b -> a -> a) -> Val a -> Val b
-liftBV f b x = Val (Func nf nb)
+liftBV f b x = Val nf nb
   where nf db = f (vfor x db)
         nb ny db = vrev x (b ny (vfor x db)) db
 
 liftBV2 :: (a -> b -> c) -> (c -> (a, b) -> (a, b)) -> Val a -> Val b -> Val c
-liftBV2 f b bbb ccc = Val (Func fd bd)
+liftBV2 f b bbb ccc = Val fd bd
   where fd x = f (vfor bbb x) (vfor ccc x)
         bd nv x = let (nb, nc) = b nv (vfor bbb x, vfor ccc x)
                    in vrev ccc nc (vrev bbb nb x)
@@ -104,7 +103,7 @@ liftBV2 f b bbb ccc = Val (Func fd bd)
 vsp v = msp $ vread v thedb
 
 vwrite :: Val a -> Val a -> DB -> DB
-vwrite (Val (Func f b)) v a = b (vread v a) a
+vwrite (Val f b) v a = b (vread v a) a
 
 -- bidi inc
 binc :: Val Int -> Val Int

@@ -193,13 +193,18 @@ type Write = DB -> DB
 mkwrite :: Val a -> Val a -> Write
 mkwrite = vwrite
 
-(<--) :: Val a -> Val a -> StateT [Write] IO ()
+type TMI = StateT [Write] IO ()
+
+(<--) :: Val a -> Val a -> TMI
 dest <-- src = do
   writes <- get
   put $ writes ++ [mkwrite dest src]
 
-foo :: StateT [Write] IO ()
+io = liftIO
+
+foo :: TMI
 foo = do
+  io $ msp "ho"
   _a <-- 120
 
 applyWrites :: [Write] -> DB -> DB

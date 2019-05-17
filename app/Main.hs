@@ -29,6 +29,7 @@ arrlookup_b :: Int -> a -> [a] -> [a]
 import Control.Applicative
 import Control.Monad.State
 import Data.Function
+import qualified Data.Map.Strict as M
 import Data.String (IsString(..))
 import qualified Debug.Trace as TR
 import System.IO
@@ -235,7 +236,43 @@ persistentRun action = do
   writeFile "history.db" newHistoryS
   return result
 
---main = tmiRun thedb foo
-main = do
+ofmain = tmiRun thedb foo
+
+fmain = do
   result <- persistentRun foo
   msp result
+
+processLines:: String -> (String -> IO ()) -> IO ()
+processLines filename action = do
+  bankCommand <- openFile filename ReadMode
+  let loop = do
+      eof <- hIsEOF bankCommand
+      if eof
+        then return ()
+        else do
+                line <- hGetLine bankCommand
+                action line
+                loop
+  loop
+
+data Bank = Bank { accounts :: M.Map String Int }
+  deriving (Read, Show)
+thebank = Bank { accounts = M.fromList [("foo", 100)] }
+processBankCommandString :: String -> IO ()
+processBankCommandString line = processBankCommand (words line)
+
+processBankCommand :: [String] -> IO ()
+processBankCommand command = msp command
+
+bankProcess = processLines "bank-commands.txt" processBankCommandString
+
+main = do
+  msp thebank
+  let s :: String
+      s = show thebank
+  msp s
+  let b2 :: Bank
+      b2 = read s
+  msp b2
+
+--main = bankProcess

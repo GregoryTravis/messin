@@ -3,7 +3,9 @@
 module Main where
 
 {-
+- annotations on deposit -- why are they necessary?
 - add a persistent main
+- lower <-- precedence?
 - no thedb global, pass it through
 - Node monad: collect writes, then apply them sequentially
   - Instead of applying the writes, collect them?
@@ -36,10 +38,10 @@ import System.IO
 import Util 
 
 type History = [DB]
-data DB = DB { a :: Int, b :: [Int], c :: String }
+data DB = DB { a :: Int, b :: [Int], c :: String, accounts :: M.Map String Int }
   deriving (Eq, Read, Show)
 
-thedb = DB { a = 12, b = [2, 3, 4], c = "asdf" }
+thedb = DB { a = 12, b = [2, 3, 4], c = "asdf", accounts = M.fromList [] }
 
 data Val b = Val (DB -> b) (b -> DB -> DB)
 
@@ -135,21 +137,21 @@ nmain = do
   vsp $ (liftV (+ 10)) $ _a
   vsp $ (liftV2 (+)) _a (_bi 1)
   msp $ vwrite _a 120 thedb
-  massert $ (vwrite _a 120 thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+  massert $ (vwrite _a 120 thedb) == DB { a = 120 , b = [ 2 , 3 , 4 ] , c = "asdf", accounts = M.fromList [] } 
   vsp $ binc $ _a
   massert $ (vwrite (binc $ _a) 130 thedb) ==
-    DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf" } 
+    DB { a = 129 , b = [ 2 , 3 , 4 ] , c = "asdf", accounts = M.fromList [] } 
   vsp $ _a `bidiPlus` (_bi 1)
   msp $ vwrite (_a `bidiPlus` (_bi 1)) 19 thedb
   massert $ (vwrite (_a `bidiPlus` (_bi 1)) 19 thedb) ==
-    DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf" }
+    DB { a = 14 , b = [ 2 , 5 , 4 ] , c = "asdf", accounts = M.fromList [] }
   let floo :: Val Int
       floo = 123
   vsp floo
   msp "mult"
   msp $ vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb
   massert $ (vwrite (_bi 1) 335 $ vwrite _a 126 $ vwrite _c "zxcv" thedb) ==
-    DB { a = 126 , b = [ 2 , 335 , 4 ] , c = "zxcv" }
+    DB { a = 126 , b = [ 2 , 335 , 4 ] , c = "zxcv", accounts = M.fromList [] }
   vsp $ nmap (liftV (\x -> x * 2)) (vconst [1, 2, 3])
   vsp $ nmap2 (vconst (\x -> x * 2)) (vconst [1, 2, 3])
   massert $ (vread (nmap (liftV (\x -> x * 2)) (vconst [1, 2, 3])) thedb) == [2, 4, 6]
@@ -179,12 +181,20 @@ nmain = do
 up_a v db = db { a = v }
 up_b v db = db { b = v }
 up_c v db = db { c = v }
+up_accounts :: M.Map String Int -> DB -> DB
+up_accounts v db = db { accounts = v }
 _a :: Val Int
 _a = liftBV a up_a theroot
 _b = liftBV b up_b theroot
 _c = liftBV c up_c theroot
+_accounts = liftBV accounts up_accounts theroot
 _i :: Int -> Val [a] -> Val a
 _i i = liftBV (!! i) (\nv oarr -> upd oarr i nv)
+_m_f :: Ord a => a -> M.Map a b -> b
+_m_f k m = m M.! k
+_m_b :: Ord a => a -> b -> M.Map a b -> M.Map a b
+_m_b k v m = M.insert k v m
+_m k = liftBV (_m_f k) (_m_b k)
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
@@ -255,24 +265,24 @@ processLines filename action = do
                 loop
   loop
 
-data Bank = Bank { accounts :: M.Map String Int }
-  deriving (Read, Show)
-thebank = Bank { accounts = M.fromList [("foo", 100)] }
 processBankCommandString :: String -> IO ()
-processBankCommandString line = processBankCommand (words line)
+processBankCommandString line = persistentRun $ processBankCommand (words line)
 
-processBankCommand :: [String] -> IO ()
-processBankCommand command = msp command
+processBankCommand :: [String] -> TMI ()
+--processBankCommand command = do
+  --_accounts <-- (vconst $ M.fromList [("bar", 20)])
+  --((_m "baz") _accounts) <-- (vconst 30)
+processBankCommand ["createAccount", name] = do
+  ((_m name) _accounts) <-- (vconst 0)
+processBankCommand ["deposit", name, amount] = do
+  let currentBalance :: Val Int
+      currentBalance = ((_m name) _accounts)
+      deposit :: Val Int
+      deposit = vconst $ read amount
+      newBalance :: Val Int
+      newBalance = currentBalance + deposit
+  ((_m name) _accounts) <-- newBalance
 
 bankProcess = processLines "bank-commands.txt" processBankCommandString
 
-main = do
-  msp thebank
-  let s :: String
-      s = show thebank
-  msp s
-  let b2 :: Bank
-      b2 = read s
-  msp b2
-
---main = bankProcess
+main = do bankProcess

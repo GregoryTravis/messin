@@ -3,8 +3,10 @@
 module Main where
 
 {-
++ add a persistent main
 - annotations on deposit -- why are they necessary?
-- add a persistent main
+- can remove parens from left of <-- ?
+- can remove vconsts?
 - lower <-- precedence?
 - no thedb global, pass it through
 - Node monad: collect writes, then apply them sequentially
@@ -256,22 +258,19 @@ processLines:: String -> (String -> IO ()) -> IO ()
 processLines filename action = do
   bankCommand <- openFile filename ReadMode
   let loop = do
-      eof <- hIsEOF bankCommand
-      if eof
-        then return ()
-        else do
-                line <- hGetLine bankCommand
-                action line
-                loop
+        eof <- hIsEOF bankCommand
+        if eof
+          then return ()
+          else do
+                  line <- hGetLine bankCommand
+                  action line
+                  loop
   loop
 
 processBankCommandString :: String -> IO ()
 processBankCommandString line = persistentRun $ processBankCommand (words line)
 
 processBankCommand :: [String] -> TMI ()
---processBankCommand command = do
-  --_accounts <-- (vconst $ M.fromList [("bar", 20)])
-  --((_m "baz") _accounts) <-- (vconst 30)
 processBankCommand ["createAccount", name] = do
   ((_m name) _accounts) <-- (vconst 0)
 processBankCommand ["deposit", name, amount] = do

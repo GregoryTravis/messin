@@ -236,4 +236,6 @@ persistentRun action = do
   return result
 
 --main = tmiRun thedb foo
-main = persistentRun foo
+main = do
+  result <- persistentRun foo
+  msp result

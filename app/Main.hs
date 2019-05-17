@@ -34,6 +34,7 @@ import qualified Debug.Trace as TR
 import System.IO
 import Util 
 
+type History = [DB]
 data DB = DB { a :: Int, b :: [Int], c :: String }
   deriving (Eq, Read, Show)
 
@@ -214,12 +215,25 @@ foo = do
 applyWrites :: [Write] -> DB -> DB
 applyWrites writes db = foldl (&) db writes
 
-tmiRun action = do
+tmiRun :: DB -> TMI a -> IO (a, DB)
+tmiRun db action = do
   msp "hi"
   (x, writes) <- runStateT action []
-  let result = vread x thedb
-      newdb = applyWrites writes thedb
-  msp newdb
-  msp result
+  let result = vread x db
+      newDb = applyWrites writes db
+  msp newDb
+  return (result, newDb)
 
-main = tmiRun foo
+persistentRun :: TMI a -> IO a
+persistentRun action = do
+  historyS <- readFile "history.db"
+  let history :: History
+      history = (read historyS) :: History
+  (result, newDb) <- tmiRun (last history) action
+  let newHistory = history ++ [newDb]
+      newHistoryS = show newHistory
+  writeFile "history.db" newHistoryS
+  return result
+
+--main = tmiRun thedb foo
+main = persistentRun foo

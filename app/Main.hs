@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Main where
 
@@ -46,6 +47,14 @@ data DB = DB { a :: Int, b :: [Int], c :: String, accounts :: M.Map String Int }
 thedb = DB { a = 12, b = [2, 3, 4], c = "asdf", accounts = M.fromList [] }
 
 data Val b = Val (DB -> b) (b -> DB -> DB)
+
+type a --> b = Val a -> Val b
+type a ---> b = Val a -> b
+
+goo :: String --> Int
+goo (Val _ _) = vconst 3
+hoo :: String ---> (Int --> Float)
+hoo (Val _ _) (Val _ _) = vconst 3.4
 
 vconst v = uni $ const v
 

@@ -5,7 +5,9 @@ module Main where
 
 {-
 + add a persistent main
+- finish bank commands
 - annotations on deposit -- why are they necessary?
+- why is vconst necessary in bank stuff
 - can remove parens from left of <-- ?
 - can remove vconsts?
 - lower <-- precedence?
@@ -37,6 +39,7 @@ import Data.Function
 import qualified Data.Map.Strict as M
 import Data.String (IsString(..))
 import qualified Debug.Trace as TR
+import System.Directory (copyFile)
 import System.IO
 import Util 
 
@@ -290,7 +293,14 @@ processBankCommand ["deposit", name, amount] = do
       newBalance :: Val Int
       newBalance = currentBalance + deposit
   ((_m name) _accounts) <-- newBalance
+processBankCommand ["transfer", from, to, amount] = do
+  ((_m to) _accounts) <-- (((_m to) _accounts) + (vconst (read amount :: Int)))
+  ((_m from) _accounts) <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
+processBankCommand ["withdraw", from, amount] = do
+  ((_m from) _accounts) <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
 
-bankProcess = processLines "bank-commands.txt" processBankCommandString
+bankProcess = do
+  copyFile "init-history.db" "history.db"
+  processLines "bank-commands.txt" processBankCommandString
 
 main = do bankProcess

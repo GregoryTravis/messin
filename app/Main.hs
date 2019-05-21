@@ -286,12 +286,7 @@ processBankCommand :: [String] -> TMI ()
 processBankCommand ["createAccount", name] = do
   ((_m name) _accounts) <-- (vconst 0)
 processBankCommand ["deposit", name, amount] = do
-  let currentBalance :: Val Int
-      currentBalance = ((_m name) _accounts)
-      deposit :: Val Int
-      deposit = vconst $ read amount
-      newBalance :: Val Int
-      newBalance = currentBalance + deposit
+  let newBalance = (_m name) _accounts + vconst (read amount :: Int)
   ((_m name) _accounts) <-- newBalance
 processBankCommand ["transfer", from, to, amount] = do
   ((_m to) _accounts) <-- (((_m to) _accounts) + (vconst (read amount :: Int)))

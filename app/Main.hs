@@ -224,6 +224,7 @@ mkwrite = vwrite
 
 type TMI a = StateT [Write] IO (Val a)
 
+infix 4 <--
 (<--) :: Val a -> Val a -> TMI ()
 dest <-- src = do
   writes <- get
@@ -285,15 +286,15 @@ processBankCommandString line = persistentRun $ processBankCommand (words line)
 
 processBankCommand :: [String] -> TMI ()
 processBankCommand ["createAccount", name] = do
-  (_m name) _accounts <-- (vconst 0)
+  (_m name) _accounts <-- vconst 0
 processBankCommand ["deposit", name, amount] = do
   let newBalance = (_m name) _accounts + vconst (read amount :: Int)
   (_m name) _accounts <-- newBalance
 processBankCommand ["transfer", from, to, amount] = do
-  (_m to) _accounts <-- (((_m to) _accounts) + (vconst (read amount :: Int)))
-  (_m from) _accounts <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
+  (_m to) _accounts <-- (_m to) _accounts + vconst (read amount :: Int)
+  (_m from) _accounts <-- (_m from) _accounts - vconst (read amount :: Int)
 processBankCommand ["withdraw", from, amount] = do
-  (_m from) _accounts <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
+  (_m from) _accounts <-- (_m from) _accounts - vconst (read amount :: Int)
 
 bankProcess = do
   copyFile "init-history.db" "history.db"

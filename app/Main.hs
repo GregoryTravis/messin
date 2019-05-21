@@ -8,8 +8,8 @@ module Main where
 + finish bank commands
 + annotations on deposit -- why are they necessary?
 + why is vconst necessary in bank stuff
-- can remove parens from left of <-- ?
-- lower <-- precedence?
++ can remove parens from left of <-- ?
++ lower <-- precedence?
 - use -->
 - can remove vconsts?
 - no thedb global, pass it through

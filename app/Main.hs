@@ -5,12 +5,13 @@ module Main where
 
 {-
 + add a persistent main
-- finish bank commands
-- annotations on deposit -- why are they necessary?
-- why is vconst necessary in bank stuff
++ finish bank commands
++ annotations on deposit -- why are they necessary?
++ why is vconst necessary in bank stuff
 - can remove parens from left of <-- ?
-- can remove vconsts?
 - lower <-- precedence?
+- use -->
+- can remove vconsts?
 - no thedb global, pass it through
 - Node monad: collect writes, then apply them sequentially
   - Instead of applying the writes, collect them?
@@ -284,15 +285,15 @@ processBankCommandString line = persistentRun $ processBankCommand (words line)
 
 processBankCommand :: [String] -> TMI ()
 processBankCommand ["createAccount", name] = do
-  ((_m name) _accounts) <-- (vconst 0)
+  (_m name) _accounts <-- (vconst 0)
 processBankCommand ["deposit", name, amount] = do
   let newBalance = (_m name) _accounts + vconst (read amount :: Int)
-  ((_m name) _accounts) <-- newBalance
+  (_m name) _accounts <-- newBalance
 processBankCommand ["transfer", from, to, amount] = do
-  ((_m to) _accounts) <-- (((_m to) _accounts) + (vconst (read amount :: Int)))
-  ((_m from) _accounts) <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
+  (_m to) _accounts <-- (((_m to) _accounts) + (vconst (read amount :: Int)))
+  (_m from) _accounts <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
 processBankCommand ["withdraw", from, amount] = do
-  ((_m from) _accounts) <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
+  (_m from) _accounts <-- (((_m from) _accounts) - (vconst (read amount :: Int)))
 
 bankProcess = do
   copyFile "init-history.db" "history.db"

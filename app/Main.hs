@@ -10,13 +10,9 @@ module Main where
 + why is vconst necessary in bank stuff
 + can remove parens from left of <-- ?
 + lower <-- precedence?
-- use -->
-- can remove vconsts?
++ use -->
+x can remove vconsts?
 - no thedb global, pass it through
-- Node monad: collect writes, then apply them sequentially
-  - Instead of applying the writes, collect them?
-  - Get rid of all explicit mentions of db; top level 'nmain' should be inside the node monad and runNode or whatever passes in the db, then saves the resulting
-  modified db
 - bidi mmap
 - ====
 - Terse notation? F or --> (can have --> even if no Func), V; what about <-- for write???

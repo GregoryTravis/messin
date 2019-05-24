@@ -57,6 +57,8 @@ hoo :: String ---> (Int --> Float)
 hoo (Val _ _) (Val _ _) = vconst 3.4
 
 vconst v = uni $ const v
+-- Probably should not allow writes to constants
+--vconst v = Val (const v) (\_ db -> db)
 
 for (Val f r) = f
 rev (Val f r) = r
@@ -124,13 +126,13 @@ neq :: Eq b => Val b -> Val b -> Val Bool
 neq = liftV2 (==)
 
 nhead :: Val [b] -> Val b
-nhead = liftV head
+nhead = liftBV head $ \x (_:xs) -> x:xs
 
 ntail :: Val [b] -> Val [b]
-ntail = liftV tail
+ntail = liftBV tail $ \xs (x:_) -> x:xs
 
 ncons :: Val b -> Val [b] -> Val [b]
-ncons = liftV2 (:)
+ncons = liftBV2 (:) $ \(x:xs) _ -> (x, xs)
 
 nmap :: (Eq a, Show a) => (Val a -> Val b) -> Val [a] -> Val [b]
 nmap f as = nif (neq as (vconst []))
@@ -188,6 +190,12 @@ nmain = do
   vsp $ _a + 10
   vsp $ 10 + _a
   vsp $ _a + (_bi 1)
+  vsp $ nhead _b
+  msp $ vwrite (nhead _b) 20 thedb
+  vsp $ ntail _b
+  msp $ vwrite (ntail _b) (vconst [30, 40]) thedb
+  vsp $ ncons _a _b
+  msp $ vwrite (ncons _a _b) (vconst [1200, 200, 300, 400]) thedb
 
 up_a v db = db { a = v }
 up_b v db = db { b = v }
@@ -296,4 +304,6 @@ bankProcess = do
   copyFile "init-history.db" "history.db"
   processLines "bank-commands.txt" processBankCommandString
 
-main = do bankProcess
+main = do
+  bankProcess
+  nmain

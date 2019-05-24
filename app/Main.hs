@@ -12,11 +12,15 @@ module Main where
 + lower <-- precedence?
 + use -->
 x can remove vconsts?
+- Move to a repo
+- nmain as a basic test using a trad test framework
+- real-time readout during bank stuff
+- timed bank command trickle
 - no thedb global, pass it through
 - bidi mmap
 - ====
 - Terse notation? F or --> (can have --> even if no Func), V; what about <-- for write???
-- bidi head, tail, cons
++ bidi head, tail, cons
 - Can you do TMI.., as in TMI.(.)
 - fromList? OverloadedLists extension + IsList
 - Rename to hide orig stuff and rename node stuff to look orig

@@ -39,10 +39,12 @@ import Control.Monad.State
 import Data.Function
 import qualified Data.Map.Strict as M
 import Data.String (IsString(..))
+import qualified Data.Text as T
 import qualified Debug.Trace as TR
 import System.Directory (copyFile)
 import System.IO
 import Util 
+import Web.Firefly
 
 type History = [DB]
 data DB = DB { a :: Int, b :: [Int], c :: String, accounts :: M.Map String Int }
@@ -311,3 +313,10 @@ bankProcess = do
 main = do
   bankProcess
   nmain
+
+wmain :: IO ()
+wmain = run 3001 app
+
+app :: App ()
+app = do
+  route "/hello" (return "Hello" :: Handler T.Text)

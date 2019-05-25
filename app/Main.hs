@@ -330,6 +330,9 @@ app = do
 bankPage :: HTML
 bankPage = col [
   link "create foo" ["bank", "createAccount", "foo"],
+  link "create bar" ["bank", "createAccount", "bar"],
+  link "depost 100 foo" ["bank", "deposit", "foo", "100"],
+  link "transfer 50" ["bank", "transfer", "foo", "bar", "50"],
   link "home" ["home"]
   ]
 

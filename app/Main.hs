@@ -42,6 +42,7 @@ import qualified Data.Map.Strict as M
 import Data.Maybe
 import Data.String (IsString(..))
 import qualified Data.Text as T
+import Data.Text (Text)
 import qualified Debug.Trace as TR
 import Network.HTTP.Types.Status (ok200)
 import System.Directory (copyFile)
@@ -325,15 +326,13 @@ app = do
   route "/hello" helloHandler
 
 -- name contents attributes
---data Tag = Tag T.Text T.Text [(T.Text, T.Text)]
---data HTML = HTMLTag Tag | HTMLString T.Text | HTMLPair HTML HTML
-data HTML = HTMLString T.Text | HTMLPair HTML HTML
-htmlRender :: HTML -> T.Text
+data HTML = HTMLString Text | HTMLPair HTML HTML
+htmlRender :: HTML -> Text
 htmlRender (HTMLString s) = s
 htmlRender (HTMLPair a b) = (htmlRender a) `T.append` (htmlRender b)
 --htmlRender (HTMLTag tag) = tagRender tag
 
-tag :: T.Text -> T.Text -> [(T.Text, T.Text)] -> HTML
+tag :: Text -> Text -> [(Text, Text)] -> HTML
 tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> contents <> "</" <> name <> ">"
   where attrsS = T.intercalate " " kevs
         kevs = [key <> "=" <> quot value | (key, value) <- attrs]
@@ -341,12 +340,10 @@ tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> co
 
 link text target = tag "a" text [("href", target)]
 
---instance Monoid HTML where
-  --mappend a b = HTMLPair a b
 instance Semigroup HTML where
   a <> b = HTMLPair a b
 
---helloHandler :: Handler T.Text
+--helloHandler :: Handler Text
 helloHandler = do
   foo <- fromMaybe "woops" <$> getQuery "name"
   liftIO $ msp foo

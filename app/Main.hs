@@ -12,6 +12,8 @@ module Main where
 + lower <-- precedence?
 + use -->
 x can remove vconsts?
+- action with redirect to read; some kind of Val-returning action?
+--
 - Move to a repo
 - nmain as a basic test using a trad test framework
 - real-time readout during bank stuff

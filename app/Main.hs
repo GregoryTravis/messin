@@ -38,6 +38,7 @@ import Control.Applicative
 import Control.Monad.State
 import qualified Data.CaseInsensitive as CI
 import Data.Function
+import Data.List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import Data.String (IsString(..))
@@ -45,6 +46,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Debug.Trace as TR
 import Network.HTTP.Types.Status (ok200)
+import Network.URI.Encode as ENC
 import System.Directory (copyFile)
 import System.IO
 import Util 
@@ -325,12 +327,17 @@ app :: App ()
 app = do
   route "/hello" helloHandler
 
+bankPage = col [
+  link "foo" ["bar"],
+  link "baz" ["a", "b"]
+  ]
+
 -- name contents attributes
-data HTML = HTMLString Text | HTMLPair HTML HTML
+data HTML = HTMLString Text | HTMLPair HTML HTML | HTMLNothing
 htmlRender :: HTML -> Text
 htmlRender (HTMLString s) = s
 htmlRender (HTMLPair a b) = (htmlRender a) `T.append` (htmlRender b)
---htmlRender (HTMLTag tag) = tagRender tag
+htmlRender HTMLNothing = ""
 
 tag :: Text -> Text -> [(Text, Text)] -> HTML
 tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> contents <> "</" <> name <> ">"
@@ -338,14 +345,30 @@ tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> co
         kevs = [key <> "=" <> quot value | (key, value) <- attrs]
         quot s = "\"" <> s <> "\""
 
-link text target = tag "a" text [("href", target)]
+htmlList :: [HTML] -> HTML
+htmlList htmls = mconcat htmls
+col :: [HTML] -> HTML
+col htmls = htmlList $ intersperse br htmls
+
+br = tag "br" "" []
+
+link :: Text -> [Text] -> HTML
+link text target = tag "a" text [("href", linkEncode target)]
+
+linkEncode :: [Text] -> Text
+linkEncode ss = "hello?q=" <> (T.pack $ ENC.encode $ show $ map T.unpack ss)
+
+linkDecode :: Text -> [Text]
+linkDecode s = read (ENC.decode $ T.unpack s)
 
 instance Semigroup HTML where
   a <> b = HTMLPair a b
 
+instance Monoid HTML where
+  mempty = HTMLNothing
+
 --helloHandler :: Handler Text
 helloHandler = do
-  foo <- fromMaybe "woops" <$> getQuery "name"
-  liftIO $ msp foo
-  return $ (htmlRender $ (link "foo" "bar") <> (HTMLString " ") <> (HTMLString ("Helloo " `T.append` foo)),
+  foo <- fromMaybe "woops" <$> getQuery "q"
+  return $ (htmlRender $ bankPage,
             ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)

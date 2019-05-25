@@ -344,13 +344,14 @@ tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> co
   where attrsS = T.intercalate " " kevs
         kevs = [key <> "=" <> quot value | (key, value) <- attrs]
         quot s = "\"" <> s <> "\""
+utag name = HTMLString $ "<" <> name <> "/>"
 
 htmlList :: [HTML] -> HTML
 htmlList htmls = mconcat htmls
 col :: [HTML] -> HTML
 col htmls = htmlList $ intersperse br htmls
 
-br = tag "br" "" []
+br = utag "br"
 
 link :: Text -> [Text] -> HTML
 link text target = tag "a" text [("href", linkEncode target)]
@@ -370,5 +371,6 @@ instance Monoid HTML where
 --helloHandler :: Handler Text
 helloHandler = do
   foo <- fromMaybe "woops" <$> getQuery "q"
+  liftIO $ msp foo
   return $ (htmlRender $ bankPage,
             ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)

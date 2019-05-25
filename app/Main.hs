@@ -325,12 +325,18 @@ main = run 3001 app
 
 app :: App ()
 app = do
-  route "/hello" helloHandler
+  route "/" helloHandler
 
+bankPage :: HTML
 bankPage = col [
-  link "foo" ["bar"],
-  link "baz" ["a", "b"]
+  link "create foo" ["bank", "createAccount", "foo"],
+  link "home" ["home"]
   ]
+
+bank :: [Text] -> IO HTML
+bank ts = do
+  persistentRun $ processBankCommand (map T.unpack ts)
+  return bankPage
 
 -- name contents attributes
 data HTML = HTMLString Text | HTMLPair HTML HTML | HTMLNothing
@@ -357,7 +363,7 @@ link :: Text -> [Text] -> HTML
 link text target = tag "a" text [("href", linkEncode target)]
 
 linkEncode :: [Text] -> Text
-linkEncode ss = "hello?q=" <> (T.pack $ ENC.encode $ show $ map T.unpack ss)
+linkEncode ss = "?q=" <> (T.pack $ ENC.encode $ show $ map T.unpack ss)
 
 linkDecode :: Text -> [Text]
 linkDecode s = read (ENC.decode $ T.unpack s)
@@ -368,9 +374,23 @@ instance Semigroup HTML where
 instance Monoid HTML where
   mempty = HTMLNothing
 
+registry :: M.Map Text ([Text] -> IO HTML)
+registry = M.fromList
+  [ ("home", \[] -> return bankPage)
+  , ("bank", bank)
+  ]
+
+bupp :: Text -> IO HTML
+bupp s = case linkDecode s of command : args -> (registry M.! command) args
+
+--handle :: [Text] -> IO HTML
+
 --helloHandler :: Handler Text
+defaultRoute = "%5B%22home%22%5D"
 helloHandler = do
-  foo <- fromMaybe "woops" <$> getQuery "q"
+  foo <- fromMaybe defaultRoute <$> getQuery "q"
   liftIO $ msp foo
-  return $ (htmlRender $ bankPage,
+  liftIO $ msp $ linkDecode foo
+  html <- liftIO $ bupp foo
+  return $ (htmlRender $ html,
             ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)

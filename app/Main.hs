@@ -36,11 +36,14 @@ arrlookup_b :: Int -> a -> [a] -> [a]
 
 import Control.Applicative
 import Control.Monad.State
+import qualified Data.CaseInsensitive as CI
 import Data.Function
 import qualified Data.Map.Strict as M
+import Data.Maybe
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Debug.Trace as TR
+import Network.HTTP.Types.Status (ok200)
 import System.Directory (copyFile)
 import System.IO
 import Util 
@@ -310,13 +313,42 @@ bankProcess = do
   copyFile "init-history.db" "history.db"
   processLines "bank-commands.txt" processBankCommandString
 
-main = do
+omain = do
   bankProcess
   nmain
 
-wmain :: IO ()
-wmain = run 3001 app
+main :: IO ()
+main = run 3001 app
 
 app :: App ()
 app = do
-  route "/hello" (return "Hello" :: Handler T.Text)
+  route "/hello" helloHandler
+
+-- name contents attributes
+--data Tag = Tag T.Text T.Text [(T.Text, T.Text)]
+--data HTML = HTMLTag Tag | HTMLString T.Text | HTMLPair HTML HTML
+data HTML = HTMLString T.Text | HTMLPair HTML HTML
+htmlRender :: HTML -> T.Text
+htmlRender (HTMLString s) = s
+htmlRender (HTMLPair a b) = (htmlRender a) `T.append` (htmlRender b)
+--htmlRender (HTMLTag tag) = tagRender tag
+
+tag :: T.Text -> T.Text -> [(T.Text, T.Text)] -> HTML
+tag name contents attrs = HTMLString $ "<" <> name <> " " <> attrsS <> ">" <> contents <> "</" <> name <> ">"
+  where attrsS = T.intercalate " " kevs
+        kevs = [key <> "=" <> quot value | (key, value) <- attrs]
+        quot s = "\"" <> s <> "\""
+
+link text target = tag "a" text [("href", target)]
+
+--instance Monoid HTML where
+  --mappend a b = HTMLPair a b
+instance Semigroup HTML where
+  a <> b = HTMLPair a b
+
+--helloHandler :: Handler T.Text
+helloHandler = do
+  foo <- fromMaybe "woops" <$> getQuery "name"
+  liftIO $ msp foo
+  return $ (htmlRender $ (link "foo" "bar") <> (HTMLString " ") <> (HTMLString ("Helloo " `T.append` foo)),
+            ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)

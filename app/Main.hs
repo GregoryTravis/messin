@@ -14,6 +14,7 @@ module Main where
 x can remove vconsts?
 - rogistry
 - clean up
+- redirect to action, not string
 - don't write db if it hasn't changed
 - or a read-only TMI action
 - action with redirect to read; some kind of Val-returning action?
@@ -318,39 +319,22 @@ processBankCommand ["transfer", from, to, amount] = do
 processBankCommand ["withdraw", from, amount] = do
   (_m from) _accounts <-- (_m from) _accounts - vconst (read amount :: Int)
 
-processBankCommand' :: [String] -> WebTMI
-processBankCommand' args = do
-  processBankCommand args
+bank args = do
+  processBankCommand (map T.unpack args)
   return $ vconst $ WRRedirect "?q=%5B%22home%22%5D"
 
 bankProcess = do
   copyFile "init-history.db" "history.db"
   processLines "bank-commands.txt" processBankCommandString
 
-omain = do
-  bankProcess
-  nmain
-
-bankPage :: HTML
-bankPage = col [
+bankPage :: [Text] -> WebTMI
+bankPage [] = return $ vconst $ WROk $ col [
   link "create foo" ["bank", "createAccount", "foo"],
   link "create bar" ["bank", "createAccount", "bar"],
   link "depost 100 foo" ["bank", "deposit", "foo", "100"],
   link "transfer 50" ["bank", "transfer", "foo", "bar", "50"],
   link "home" ["home"]
   ]
-
-bankPage' :: [Text] -> WebTMI
-bankPage' [] = return $ vconst $ WROk bankPage
-
-bank :: [Text] -> IO HTML
-bank ts = do
-  persistentRun $ processBankCommand (map T.unpack ts)
-  return bankPage
-
-bank' :: [Text] -> WebTMI
-bank' ts = do
-  processBankCommand' (map T.unpack ts)
 
 -- name contents attributes
 data HTML = HTMLString Text | HTMLPair HTML HTML | HTMLNothing
@@ -389,15 +373,6 @@ instance Semigroup HTML where
 instance Monoid HTML where
   mempty = HTMLNothing
 
-registry :: M.Map Text ([Text] -> IO HTML)
-registry = M.fromList
-  [ ("home", \[] -> return bankPage)
-  , ("bank", bank)
-  ]
-
-bupp :: Text -> IO HTML
-bupp s = case linkDecode s of command : args -> (registry M.! command) args
-
 data WebResult = WROk HTML | WRRedirect String
   deriving Show
 
@@ -407,10 +382,10 @@ instance ToResponse WebResult where
   toResponse (WROk html) = toResponse ((htmlRender $ html) :: Text, ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)
   toResponse (WRRedirect url) = toResponse ("" :: Text, found302, M.fromList [("Location", [T.pack url])] :: HeaderMap)
 
-rogistry :: M.Map Text ([Text] -> WebTMI)
-rogistry = M.fromList
-  [ ("home", bankPage')
-  , ("bank", bank')
+registry :: M.Map Text ([Text] -> WebTMI)
+registry = M.fromList
+  [ ("home", bankPage)
+  , ("bank", bank)
   ]
 
 yeahHandler :: Handler WebResult
@@ -419,23 +394,12 @@ yeahHandler = do
   liftIO $ msp foo
   liftIO $ msp $ linkDecode foo
   let blah = linkDecode foo
-      webTmi = (rogistry M.! (head blah)) (tail blah)
+      webTmi = (registry M.! (head blah)) (tail blah)
   webResult <- liftIO $ persistentRun webTmi
   liftIO $ msp webResult
   return $ webResult
   --return $ WRRedirect "http://cnn.com/"
   where defaultRoute = "%5B%22home%22%5D"
-
-{-
---helloHandler :: Handler Text
-helloHandler = do
-  foo <- fromMaybe defaultRoute <$> getQuery "q"
-  liftIO $ msp foo
-  liftIO $ msp $ linkDecode foo
-  html <- liftIO $ bupp foo
-  return $ (htmlRender $ html,
-            ok200, M.fromList [("Content-type", ["text/html"])] :: HeaderMap)
--}
 
 main :: IO ()
 main = run 3001 app

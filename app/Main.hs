@@ -388,22 +388,15 @@ registry = M.fromList
   , ("bank", bank)
   ]
 
-yeahHandler :: Handler WebResult
-yeahHandler = do
-  foo <- fromMaybe defaultRoute <$> getQuery "q"
-  liftIO $ msp foo
-  liftIO $ msp $ linkDecode foo
-  let blah = linkDecode foo
-      webTmi = (registry M.! (head blah)) (tail blah)
-  webResult <- liftIO $ persistentRun webTmi
-  liftIO $ msp webResult
-  return $ webResult
-  --return $ WRRedirect "http://cnn.com/"
-  where defaultRoute = "%5B%22home%22%5D"
-
 main :: IO ()
-main = run 3001 app
-
-app :: App ()
-app = do
-  route "/" yeahHandler
+main = run 3001 $ do
+  route "/" $ do
+    q <- fromMaybe defaultRoute <$> getQuery "q"
+    liftIO $ msp $ linkDecode q
+    let action = linkDecode q
+        command:args = action
+        webTmi = (registry M.! command) args
+    webResult <- liftIO $ persistentRun webTmi
+    liftIO $ msp webResult
+    return $ webResult
+  where defaultRoute = "%5B%22home%22%5D"

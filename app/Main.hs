@@ -12,8 +12,11 @@ module Main where
 + lower <-- precedence?
 + use -->
 x can remove vconsts?
-- rogistry
++ rogistry
+- vsp is reading 'thedb' which should go away, and then vsp should read when the db has arrived
 - clean up
+- Use accessors like gloabals, and write funs that use them
+- Move more things into tmi-world
 - redirect to action, not string
 - don't write db if it hasn't changed
 - or a read-only TMI action
@@ -233,6 +236,7 @@ _m_f k m = m M.! k
 _m_b :: Ord a => a -> b -> M.Map a b -> M.Map a b
 _m_b k v m = M.insert k v m
 _m k = liftBV (_m_f k) (_m_b k)
+_keys = liftV M.keys
 upd :: [a] -> Int -> a -> [a]
 upd as i a
   | i < 0 || i >= length as = error "upd out of range"
@@ -254,13 +258,7 @@ dest <-- src = do
   put $ writes ++ [mkwrite dest src]
   return $ vconst ()
 
-io = liftIO
-
-foo :: TMI Int
-foo = do
-  io $ msp "ho"
-  _a <-- 120
-  return _a
+--io = liftIO
 
 applyWrites :: [Write] -> DB -> DB
 applyWrites writes db = foldl (&) db writes
@@ -284,12 +282,6 @@ persistentRun action = do
       newHistoryS = show newHistory
   writeFile "history.db" newHistoryS
   return result
-
-ofmain = tmiRun thedb foo
-
-fmain = do
-  result <- persistentRun foo
-  msp result
 
 processLines:: String -> (String -> IO ()) -> IO ()
 processLines filename action = do
@@ -323,18 +315,25 @@ bank args = do
   processBankCommand (map T.unpack args)
   return $ vconst $ WRRedirect "?q=%5B%22home%22%5D"
 
-bankProcess = do
-  copyFile "init-history.db" "history.db"
-  processLines "bank-commands.txt" processBankCommandString
+--bankProcess = do
+  --copyFile "init-history.db" "history.db"
+  --processLines "bank-commands.txt" processBankCommandString
 
 bankPage :: [Text] -> WebTMI
-bankPage [] = return $ vconst $ WROk $ col [
-  link "create foo" ["bank", "createAccount", "foo"],
-  link "create bar" ["bank", "createAccount", "bar"],
-  link "depost 100 foo" ["bank", "deposit", "foo", "100"],
-  link "transfer 50" ["bank", "transfer", "foo", "bar", "50"],
-  link "home" ["home"]
-  ]
+bankPage [] = do
+  let accountNames = (_keys _accounts)
+  liftIO $ msp "ho"
+  liftIO $ vsp accountNames
+  liftIO $ vsp _accounts
+  liftIO $ vsp theroot
+  liftIO $ msp "ho2"
+  return $ vconst $ WROk $ col [
+    link "create foo" ["bank", "createAccount", "foo"],
+    link "create bar" ["bank", "createAccount", "bar"],
+    link "depost 100 foo" ["bank", "deposit", "foo", "100"],
+    link "transfer 50" ["bank", "transfer", "foo", "bar", "50"],
+    link "home" ["home"]
+    ]
 
 -- name contents attributes
 data HTML = HTMLString Text | HTMLPair HTML HTML | HTMLNothing

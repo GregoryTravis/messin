@@ -1,0 +1,10 @@
+set a 1
+set b 2
+show a
+show b
+set a 3
+show a
+show b
+set b 4
+show a
+show b

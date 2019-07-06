@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c699fa91b12d8752b88d7ba7d1724c31b1d44baae077cd9e2bee6aa1e11a6a94
+-- hash: 21ad7a1b301467ca88e5fe8426334b9529dc104aa364ef00fd28f8ac5c64b5fa
 
 name:           messin
 version:        0.1.0.0
@@ -25,38 +25,22 @@ source-repository head
   type: git
   location: https://github.com/githubuser/messin
 
-library
-  exposed-modules:
-      Lib
-  other-modules:
-      Paths_messin
-  hs-source-dirs:
-      src
-  build-depends:
-      base >=4.7 && <5
-  default-language: Haskell2010
-
 executable messin
   main-is: Main.hs
   other-modules:
-      Paths_messin
+    Util, Mut
   hs-source-dirs:
-      app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+      app, src
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -XOverloadedStrings
   build-depends:
       base >=4.7 && <5
-    , messin
-  default-language: Haskell2010
-
-test-suite messin-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_messin
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , messin
+    , case-insensitive
+    , containers
+    , directory
+    , http-types
+    , firefly
+    , mtl
+    , pretty-simple
+    , text
+    , uri-encode
   default-language: Haskell2010

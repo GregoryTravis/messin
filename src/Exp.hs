@@ -51,11 +51,25 @@ instance Exp (Val a) a where
 instance (Exp f (a -> b), Exp x a) => Exp (App f x) b where
  eval (App f x) = (eval f) (eval x)
 
+val x = Val x
+liftF f = App (val f)
+liftF2 f x y = App (App (val f) x) y
+
+(+.) = liftF2 (+)
+
 main = do
+  let foo = Val 3
+  aa <- makeStableName foo
+  bb <- makeStableName foo
+  cc <- makeStableName foo
+  msp $ hashStableName aa
+  msp $ hashStableName bb
+  msp $ hashStableName cc
   msp $ eval (App (Val (+2)) (Val 10))
   msp $ eval (App (App (Val (+)) (Val 2)) (Val 10))
   msp $ eval (App (Val (++ "asdf")) (Val "zxcv"))
   msp $ eval (App (App (Val (++)) (App (Val show) (Val 2))) (Val "asdf"))
+  msp $ eval $ (val 3) +. (val 12)
   --msp $ eval (App (Val (+2)) (Val "a"))
   msp "hi"
 
